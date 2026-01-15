@@ -5,22 +5,58 @@
   <style>
     body {
       font-family: 'Roboto', Arial, sans-serif;
-      padding: 20px;
+      padding: 0;
       margin: 0;
       background-color: #f5f5f5;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
     .container {
-      max-width: 500px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
       background: white;
-      padding: 24px;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      overflow: hidden;
     }
     h2 {
-      margin-top: 0;
+      margin: 0;
+      padding: 20px 20px 16px 20px;
       color: #1a73e8;
       font-size: 24px;
       font-weight: 400;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    .tabs {
+      display: flex;
+      background: #f8f9fa;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 0 20px;
+    }
+    .tab {
+      padding: 12px 24px;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      color: #5f6368;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .tab:hover {
+      background: #e8eaed;
+    }
+    .tab.active {
+      color: #1a73e8;
+      border-bottom-color: #1a73e8;
+    }
+    .tab-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
     }
     .section {
       margin-bottom: 24px;
@@ -36,6 +72,57 @@
       color: #202124;
       margin-bottom: 12px;
     }
+    .object-type-section {
+      background: #f8f9fa;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    .object-type-title {
+      font-size: 15px;
+      font-weight: 500;
+      color: #1a73e8;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #1a73e8;
+    }
+    .fields-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .field-checkbox {
+      display: flex;
+      align-items: center;
+      padding: 6px;
+      background: white;
+      border-radius: 4px;
+    }
+    .field-checkbox input {
+      margin-right: 8px;
+      width: auto;
+    }
+    .field-checkbox label {
+      margin: 0;
+      font-size: 13px;
+      color: #202124;
+      cursor: pointer;
+      font-weight: normal;
+    }
+    .select-all-btn {
+      padding: 6px 12px;
+      background: white;
+      color: #1a73e8;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      margin-bottom: 12px;
+    }
+    .select-all-btn:hover {
+      background: #f8f9fa;
+    }
     .form-group {
       margin-bottom: 16px;
     }
@@ -46,15 +133,20 @@
       font-size: 14px;
       font-weight: 500;
     }
-    input, select {
+    input, select, textarea {
       width: 100%;
       padding: 10px;
       border: 1px solid #dadce0;
       border-radius: 4px;
       font-size: 14px;
       box-sizing: border-box;
+      font-family: 'Roboto', Arial, sans-serif;
     }
-    input:focus, select:focus {
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    input:focus, select:focus, textarea:focus {
       outline: none;
       border-color: #1a73e8;
     }
@@ -94,8 +186,10 @@
       background-color: #fce8e6;
       color: #c5221f;
     }
-    .button-group {
-      margin-top: 24px;
+    .footer {
+      background: white;
+      padding: 16px 20px;
+      border-top: 1px solid #e0e0e0;
       display: flex;
       justify-content: flex-end;
       gap: 8px;
@@ -143,73 +237,231 @@
 </head>
 <body>
   <div class="container">
-    <h2>Settings</h2>
+    <h2>Arena Slides Settings</h2>
 
-    <div id="message" class="message"></div>
-
-    <!-- Arena Connection Status -->
-    <div class="section">
-      <div class="section-title">
-        Arena Connection
-        <span id="arenaStatus" class="status-indicator status-disconnected">Not Connected</span>
-      </div>
-      <div id="arenaInfo" style="font-size: 14px; color: #5f6368;"></div>
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('general')">General</div>
+      <div class="tab" onclick="switchTab('schema')">Schema</div>
     </div>
 
-    <!-- Gemini API Configuration -->
-    <div class="section">
-      <div class="section-title">Gemini AI Configuration</div>
+    <!-- General Tab -->
+    <div id="generalTab" class="tab-content active">
+      <div id="message" class="message"></div>
+
+      <!-- Arena Connection Status -->
+      <div class="section">
+        <div class="section-title">
+          Arena Connection
+          <span id="arenaStatus" class="status-indicator status-disconnected">Not Connected</span>
+        </div>
+        <div id="arenaInfo" style="font-size: 14px; color: #5f6368;"></div>
+      </div>
+
+      <!-- Gemini API Configuration -->
+      <div class="section">
+        <div class="section-title">Gemini AI Configuration</div>
+
+        <div class="info-box">
+          Get your free Gemini API key from <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a>
+        </div>
+
+        <div class="form-group">
+          <label for="geminiApiKey">Gemini API Key</label>
+          <input type="password" id="geminiApiKey" placeholder="Enter your Gemini API key">
+          <div class="help-text">Your API key is stored securely and never shared</div>
+        </div>
+
+        <div class="form-group">
+          <label for="aiDetailLevel">AI Detail Level</label>
+          <select id="aiDetailLevel">
+            <option value="brief">Brief (3-5 bullet points)</option>
+            <option value="medium" selected>Medium (5-7 bullet points)</option>
+            <option value="detailed">Detailed (7-10 bullet points)</option>
+          </select>
+          <div class="help-text">Controls how much detail AI includes in slide summaries</div>
+        </div>
+      </div>
+
+      <!-- Slide Preferences -->
+      <div class="section">
+        <div class="section-title">Slide Preferences</div>
+
+        <div class="form-group">
+          <label for="slideTemplate">Default Slide Template</label>
+          <select id="slideTemplate">
+            <option value="title_and_body" selected>Title and Body</option>
+            <option value="title_only">Title Only</option>
+            <option value="section_header">Section Header</option>
+            <option value="two_columns">Two Columns</option>
+          </select>
+          <div class="help-text">Layout used when generating new slides</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Schema Tab -->
+    <div id="schemaTab" class="tab-content">
+      <div id="schemaMessage" class="message"></div>
 
       <div class="info-box">
-        Get your free Gemini API key from <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a>
+        Configure which Arena fields to include in AI summaries and provide custom instructions for each object type. This helps Gemini focus on the most relevant information.
       </div>
 
-      <div class="form-group">
-        <label for="geminiApiKey">Gemini API Key</label>
-        <input type="password" id="geminiApiKey" placeholder="Enter your Gemini API key">
-        <div class="help-text">Your API key is stored securely and never shared</div>
+      <!-- Items Schema -->
+      <div class="object-type-section">
+        <div class="object-type-title">📦 Items</div>
+
+        <button class="select-all-btn" onclick="selectAllFields('items', true)">Select All</button>
+        <button class="select-all-btn" onclick="selectAllFields('items', false)">Deselect All</button>
+
+        <div class="fields-grid" id="itemsFields"></div>
+
+        <div class="form-group">
+          <label for="itemsInstructions">Custom Instructions for Items</label>
+          <textarea id="itemsInstructions" placeholder="e.g., Pay attention to item number, description, owner, revision, lifecycle, cost. If multiple items, present in a table grouped by lifecycle stage."></textarea>
+          <div class="help-text">Tell Gemini how to analyze and present item data</div>
+        </div>
       </div>
 
-      <div class="form-group">
-        <label for="aiDetailLevel">AI Detail Level</label>
-        <select id="aiDetailLevel">
-          <option value="brief">Brief (3-5 bullet points)</option>
-          <option value="medium" selected>Medium (5-7 bullet points)</option>
-          <option value="detailed">Detailed (7-10 bullet points)</option>
-        </select>
-        <div class="help-text">Controls how much detail AI includes in slide summaries</div>
+      <!-- Changes Schema -->
+      <div class="object-type-section">
+        <div class="object-type-title">🔄 Changes (ECOs)</div>
+
+        <button class="select-all-btn" onclick="selectAllFields('changes', true)">Select All</button>
+        <button class="select-all-btn" onclick="selectAllFields('changes', false)">Deselect All</button>
+
+        <div class="fields-grid" id="changesFields"></div>
+
+        <div class="form-group">
+          <label for="changesInstructions">Custom Instructions for Changes</label>
+          <textarea id="changesInstructions" placeholder="e.g., Pay special attention to created date, target due date, status, and severity. Focus on what changed, why, and the impact."></textarea>
+          <div class="help-text">Tell Gemini how to analyze and present change data</div>
+        </div>
+      </div>
+
+      <!-- Quality Schema -->
+      <div class="object-type-section">
+        <div class="object-type-title">🔍 Quality Records</div>
+
+        <button class="select-all-btn" onclick="selectAllFields('quality', true)">Select All</button>
+        <button class="select-all-btn" onclick="selectAllFields('quality', false)">Deselect All</button>
+
+        <div class="fields-grid" id="qualityFields"></div>
+
+        <div class="form-group">
+          <label for="qualityInstructions">Custom Instructions for Quality</label>
+          <textarea id="qualityInstructions" placeholder="e.g., Pay special focus to the description, root cause, and containment fields. Emphasize corrective actions and prevent recurrence."></textarea>
+          <div class="help-text">Tell Gemini how to analyze and present quality data</div>
+        </div>
       </div>
     </div>
 
-    <!-- Slide Preferences -->
-    <div class="section">
-      <div class="section-title">Slide Preferences</div>
-
-      <div class="form-group">
-        <label for="slideTemplate">Default Slide Template</label>
-        <select id="slideTemplate">
-          <option value="title_and_body" selected>Title and Body</option>
-          <option value="title_only">Title Only</option>
-          <option value="section_header">Section Header</option>
-          <option value="two_columns">Two Columns</option>
-        </select>
-        <div class="help-text">Layout used when generating new slides</div>
-      </div>
-    </div>
-
-    <div class="button-group">
+    <!-- Footer -->
+    <div class="footer">
       <button type="button" class="btn-secondary" onclick="closeDialog()">Cancel</button>
       <button type="button" class="btn-primary" onclick="saveSettings()">Save Settings</button>
     </div>
   </div>
 
   <script>
-    // Load current settings on open
-    window.onload = function() {
-      loadSettings();
+    var currentTab = 'general';
+
+    // Default field schemas for each object type
+    var defaultFields = {
+      items: [
+        'number', 'name', 'description', 'category', 'lifecyclePhase', 'revisionNumber',
+        'owner', 'creationDateTime', 'effectivityDate', 'procurementType', 'uom',
+        'offTheShelf', 'status', 'cost', 'notes'
+      ],
+      changes: [
+        'number', 'title', 'description', 'status', 'category', 'severity', 'effectivityType',
+        'creator', 'creationDateTime', 'submittedDateTime', 'targetImplementationDate',
+        'implementationDate', 'routingStatus', 'impactedItems', 'reason'
+      ],
+      quality: [
+        'number', 'title', 'description', 'status', 'category', 'severity', 'problemDescription',
+        'rootCause', 'containmentAction', 'correctiveAction', 'preventiveAction',
+        'creator', 'creationDateTime', 'closureDate', 'impactedItems', 'disposition'
+      ]
     };
 
+    window.onload = function() {
+      loadSettings();
+      initializeSchemaFields();
+    };
+
+    function switchTab(tab) {
+      currentTab = tab;
+
+      // Update tab buttons
+      var tabs = document.querySelectorAll('.tab');
+      tabs.forEach(function(t) {
+        t.classList.remove('active');
+      });
+      event.target.classList.add('active');
+
+      // Update tab content
+      document.getElementById('generalTab').classList.remove('active');
+      document.getElementById('schemaTab').classList.remove('active');
+
+      if (tab === 'general') {
+        document.getElementById('generalTab').classList.add('active');
+      } else {
+        document.getElementById('schemaTab').classList.add('active');
+      }
+    }
+
+    function initializeSchemaFields() {
+      // Create checkboxes for each field type
+      createFieldCheckboxes('items', 'itemsFields');
+      createFieldCheckboxes('changes', 'changesFields');
+      createFieldCheckboxes('quality', 'qualityFields');
+    }
+
+    function createFieldCheckboxes(type, containerId) {
+      var container = document.getElementById(containerId);
+      var fields = defaultFields[type];
+
+      fields.forEach(function(field) {
+        var div = document.createElement('div');
+        div.className = 'field-checkbox';
+
+        var checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = type + '_' + field;
+        checkbox.value = field;
+        checkbox.checked = true; // Default to all checked
+
+        var label = document.createElement('label');
+        label.htmlFor = type + '_' + field;
+        label.textContent = formatFieldName(field);
+
+        div.appendChild(checkbox);
+        div.appendChild(label);
+        container.appendChild(div);
+      });
+    }
+
+    function formatFieldName(field) {
+      // Convert camelCase to Title Case
+      return field
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/^./, function(str) { return str.toUpperCase(); });
+    }
+
+    function selectAllFields(type, select) {
+      var fields = defaultFields[type];
+      fields.forEach(function(field) {
+        var checkbox = document.getElementById(type + '_' + field);
+        if (checkbox) {
+          checkbox.checked = select;
+        }
+      });
+    }
+
     function loadSettings() {
+      // Load general settings
       google.script.run
         .withSuccessHandler(function(settings) {
           document.getElementById('geminiApiKey').value = settings.geminiApiKey || '';
@@ -224,6 +476,37 @@
           updateArenaStatus(status);
         })
         .getLoginStatus();
+
+      // Load schema settings
+      google.script.run
+        .withSuccessHandler(function(schema) {
+          loadSchemaSettings(schema);
+        })
+        .getSchemaSettings();
+    }
+
+    function loadSchemaSettings(schema) {
+      if (!schema) return;
+
+      // Load selected fields for each type
+      ['items', 'changes', 'quality'].forEach(function(type) {
+        if (schema[type] && schema[type].fields) {
+          // First uncheck all
+          selectAllFields(type, false);
+          // Then check only selected ones
+          schema[type].fields.forEach(function(field) {
+            var checkbox = document.getElementById(type + '_' + field);
+            if (checkbox) {
+              checkbox.checked = true;
+            }
+          });
+        }
+
+        // Load instructions
+        if (schema[type] && schema[type].instructions) {
+          document.getElementById(type + 'Instructions').value = schema[type].instructions;
+        }
+      });
     }
 
     function updateArenaStatus(status) {
@@ -242,28 +525,58 @@
       }
     }
 
+    function getSelectedFields(type) {
+      var selected = [];
+      var fields = defaultFields[type];
+      fields.forEach(function(field) {
+        var checkbox = document.getElementById(type + '_' + field);
+        if (checkbox && checkbox.checked) {
+          selected.push(field);
+        }
+      });
+      return selected;
+    }
+
     function saveSettings() {
+      // Collect general settings
       var settings = {
         geminiApiKey: document.getElementById('geminiApiKey').value.trim(),
         aiDetailLevel: document.getElementById('aiDetailLevel').value,
         slideTemplate: document.getElementById('slideTemplate').value
       };
 
+      // Collect schema settings
+      var schema = {
+        items: {
+          fields: getSelectedFields('items'),
+          instructions: document.getElementById('itemsInstructions').value.trim()
+        },
+        changes: {
+          fields: getSelectedFields('changes'),
+          instructions: document.getElementById('changesInstructions').value.trim()
+        },
+        quality: {
+          fields: getSelectedFields('quality'),
+          instructions: document.getElementById('qualityInstructions').value.trim()
+        }
+      };
+
+      // Save both
       google.script.run
         .withSuccessHandler(function() {
-          showMessage('Settings saved successfully!', 'success');
+          showMessage('Settings saved successfully!', 'success', currentTab);
           setTimeout(function() {
             google.script.host.close();
           }, 1500);
         })
         .withFailureHandler(function(error) {
-          showMessage('Error saving settings: ' + error.message, 'error');
+          showMessage('Error saving settings: ' + error.message, 'error', currentTab);
         })
-        .saveAppSettings(settings);
+        .saveAllSettings(settings, schema);
     }
 
-    function showMessage(text, type) {
-      var messageEl = document.getElementById('message');
+    function showMessage(text, type, tab) {
+      var messageEl = document.getElementById(tab === 'schema' ? 'schemaMessage' : 'message');
       messageEl.textContent = text;
       messageEl.className = 'message ' + type;
       messageEl.style.display = 'block';

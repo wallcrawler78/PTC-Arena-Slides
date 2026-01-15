@@ -217,3 +217,71 @@ function clearLoginInfo() {
   userProps.deleteProperty('saved_arena_email');
   userProps.deleteProperty('saved_arena_workspace_id');
 }
+
+/**
+ * Saves schema configuration (field selections and instructions)
+ * @param {Object} schema - Schema configuration object
+ */
+function saveSchemaSettings(schema) {
+  var userProps = PropertiesService.getUserProperties();
+  userProps.setProperty('schema_config', JSON.stringify(schema));
+  Logger.log('Schema settings saved');
+}
+
+/**
+ * Gets schema configuration
+ * @return {Object} Schema configuration object
+ */
+function getSchemaSettings() {
+  try {
+    var userProps = PropertiesService.getUserProperties();
+    var schemaJson = userProps.getProperty('schema_config');
+
+    if (!schemaJson) {
+      // Return default schema with all fields selected
+      return getDefaultSchema();
+    }
+
+    return JSON.parse(schemaJson);
+  } catch (error) {
+    Logger.log('Error loading schema settings: ' + error.message);
+    return getDefaultSchema();
+  }
+}
+
+/**
+ * Returns default schema configuration with all fields selected
+ * @return {Object} Default schema
+ */
+function getDefaultSchema() {
+  return {
+    items: {
+      fields: ['number', 'name', 'description', 'category', 'lifecyclePhase', 'revisionNumber',
+               'owner', 'creationDateTime', 'effectivityDate', 'procurementType', 'uom',
+               'offTheShelf', 'status', 'cost', 'notes'],
+      instructions: ''
+    },
+    changes: {
+      fields: ['number', 'title', 'description', 'status', 'category', 'severity', 'effectivityType',
+               'creator', 'creationDateTime', 'submittedDateTime', 'targetImplementationDate',
+               'implementationDate', 'routingStatus', 'impactedItems', 'reason'],
+      instructions: ''
+    },
+    quality: {
+      fields: ['number', 'title', 'description', 'status', 'category', 'severity', 'problemDescription',
+               'rootCause', 'containmentAction', 'correctiveAction', 'preventiveAction',
+               'creator', 'creationDateTime', 'closureDate', 'impactedItems', 'disposition'],
+      instructions: ''
+    }
+  };
+}
+
+/**
+ * Saves all settings (general + schema) in one call
+ * @param {Object} settings - General settings
+ * @param {Object} schema - Schema configuration
+ */
+function saveAllSettings(settings, schema) {
+  saveAppSettings(settings);
+  saveSchemaSettings(schema);
+}

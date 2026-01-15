@@ -117,6 +117,42 @@ var ArenaAPIClient = (function() {
   };
 
   /**
+   * Gets a single change (ECO) by GUID
+   * @param {string} guid - Change GUID
+   * @return {Object} Change object
+   */
+  ArenaAPIClient.prototype.getChange = function(guid) {
+    var endpoint = '/changes/' + guid + '?responseview=full';
+    return this.makeRequest(endpoint, { method: 'GET' });
+  };
+
+  /**
+   * Gets a single quality record by GUID
+   * @param {string} guid - Quality record GUID
+   * @return {Object} Quality record object
+   */
+  ArenaAPIClient.prototype.getQualityRecord = function(guid) {
+    // Try multiple possible endpoints for quality details
+    var possibleEndpoints = [
+      '/qualityprocesses/' + guid + '?responseview=full',
+      '/quality/processes/' + guid + '?responseview=full',
+      '/ncrs/' + guid + '?responseview=full'
+    ];
+
+    for (var i = 0; i < possibleEndpoints.length; i++) {
+      try {
+        return this.makeRequest(possibleEndpoints[i], { method: 'GET' });
+      } catch (error) {
+        if (i === possibleEndpoints.length - 1) {
+          // Last endpoint failed, throw error
+          throw error;
+        }
+        // Try next endpoint
+      }
+    }
+  };
+
+  /**
    * Searches for items by number
    * @param {string} itemNumber - Item number to search for
    * @return {Object|null} Item object or null if not found
@@ -265,10 +301,20 @@ function loginToArena(email, password, workspaceId) {
 /**
  * Gets detailed Arena item information
  * @param {string} guid - Item GUID
+ * @param {string} type - Optional type hint: 'item', 'change', 'quality'
  * @return {Object} Detailed item information
  */
-function getArenaItemDetails(guid) {
+function getArenaItemDetails(guid, type) {
   var client = new ArenaAPIClient();
+
+  // If type is specified, use appropriate endpoint
+  if (type === 'change') {
+    return client.getChange(guid);
+  } else if (type === 'quality') {
+    return client.getQualityRecord(guid);
+  }
+
+  // Default to item endpoint
   return client.getItem(guid);
 }
 

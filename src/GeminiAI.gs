@@ -12,9 +12,10 @@ var GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/ge
  * @param {string} userPrompt - User's presentation intent
  * @param {number} itemIndex - Current item index (1-based)
  * @param {number} totalItems - Total number of items
+ * @param {string} objectType - Optional object type (item, change, quality)
  * @return {Object} Summary object with mainContent and detailedNotes
  */
-function generateAISummaryWithContext(itemDetails, userPrompt, itemIndex, totalItems) {
+function generateAISummaryWithContext(itemDetails, userPrompt, itemIndex, totalItems, objectType) {
   try {
     var apiKey = getGeminiApiKey();
 
@@ -23,14 +24,22 @@ function generateAISummaryWithContext(itemDetails, userPrompt, itemIndex, totalI
       return generateBasicSummary(itemDetails);
     }
 
-    // Prepare content for AI with Arena context
-    var itemContent = prepareItemContentForAI(itemDetails);
+    // Detect object type if not provided
+    if (!objectType) {
+      objectType = detectObjectType(itemDetails);
+    }
+
+    // Get schema configuration
+    var schema = getSchemaSettings();
+
+    // Prepare content for AI with Arena context (filtered by schema)
+    var itemContent = prepareItemContentForAI(itemDetails, objectType, schema);
 
     // Get AI detail level preference
     var detailLevel = PropertiesService.getUserProperties().getProperty(AI_DETAIL_LEVEL_KEY) || 'medium';
 
     // Generate context-aware prompt
-    var prompt = generateContextAwarePrompt(itemContent, userPrompt, detailLevel, itemIndex, totalItems);
+    var prompt = generateContextAwarePrompt(itemContent, userPrompt, detailLevel, itemIndex, totalItems, objectType, schema);
 
     // Call Gemini API
     var summary = callGeminiAPI(prompt, apiKey);
@@ -54,29 +63,36 @@ function generateAISummary(itemDetails) {
 }
 
 /**
- * Prepares Arena item content for AI processing
+ * Prepares Arena item content for AI processing (filtered by schema)
  * @param {Object} itemDetails - Arena item details
+ * @param {string} objectType - Object type (item, change, quality)
+ * @param {Object} schema - Schema configuration
  * @return {string} Formatted content string
  */
-function prepareItemContentForAI(itemDetails) {
+function prepareItemContentForAI(itemDetails, objectType, schema) {
   var content = [];
 
-  // Handle both response formats
-  var number = itemDetails.number || itemDetails.Number || 'N/A';
-  var name = itemDetails.name || itemDetails.Name || 'N/A';
-  var description = itemDetails.description || itemDetails.Description || 'N/A';
-  var category = itemDetails.category ? (itemDetails.category.name || itemDetails.category.Name) : 'N/A';
-  var lifecycle = itemDetails.lifecyclePhase ? (itemDetails.lifecyclePhase.name || itemDetails.lifecyclePhase.Name) : 'N/A';
+  // Get selected fields for this object type
+  var objectSchema = schema[objectType + 's'] || schema.items; // 'items', 'changes', 'quality'
+  var selectedFields = objectSchema.fields || [];
 
-  content.push('Item Number: ' + number);
-  content.push('Item Name: ' + name);
-  content.push('Description: ' + description);
-  content.push('Category: ' + category);
-  content.push('Lifecycle Phase: ' + lifecycle);
+  // If no fields selected, include all
+  if (selectedFields.length === 0) {
+    return JSON.stringify(itemDetails, null, 2);
+  }
 
-  // Add custom attributes if available
+  // Extract and format only selected fields
+  selectedFields.forEach(function(field) {
+    var value = extractFieldValue(itemDetails, field);
+    if (value !== null && value !== undefined && value !== 'N/A') {
+      var label = formatFieldLabel(field);
+      content.push(label + ': ' + value);
+    }
+  });
+
+  // Add custom attributes if they exist and are relevant
   var attributes = itemDetails.additionalAttributes || itemDetails.AdditionalAttributes || [];
-  if (attributes.length > 0) {
+  if (attributes.length > 0 && selectedFields.indexOf('additionalAttributes') !== -1) {
     content.push('\nAdditional Attributes:');
     for (var i = 0; i < attributes.length; i++) {
       var attr = attributes[i];
@@ -90,15 +106,78 @@ function prepareItemContentForAI(itemDetails) {
 }
 
 /**
+ * Extracts field value from item details (handles nested objects and both casings)
+ * @param {Object} itemDetails - Item details object
+ * @param {string} field - Field name
+ * @return {string} Field value or 'N/A'
+ */
+function extractFieldValue(itemDetails, field) {
+  // Try both camelCase and PascalCase
+  var value = itemDetails[field] || itemDetails[field.charAt(0).toUpperCase() + field.slice(1)];
+
+  if (value === null || value === undefined) {
+    return 'N/A';
+  }
+
+  // Handle nested objects (like category, lifecyclePhase)
+  if (typeof value === 'object' && value !== null) {
+    return value.name || value.Name || JSON.stringify(value);
+  }
+
+  // Handle arrays
+  if (Array.isArray(value)) {
+    return value.length + ' item(s)';
+  }
+
+  // Handle dates
+  if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}/)) {
+    var date = new Date(value);
+    return date.toLocaleDateString();
+  }
+
+  return String(value);
+}
+
+/**
+ * Formats field name for display
+ * @param {string} field - Field name in camelCase
+ * @return {string} Formatted label
+ */
+function formatFieldLabel(field) {
+  return field
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, function(str) { return str.toUpperCase(); });
+}
+
+/**
+ * Detects object type from item details
+ * @param {Object} itemDetails - Item details
+ * @return {string} Object type (item, change, quality)
+ */
+function detectObjectType(itemDetails) {
+  var number = itemDetails.number || itemDetails.Number || '';
+
+  if (number.indexOf('ECO') === 0) {
+    return 'change';
+  } else if (number.indexOf('CAR') === 0 || number.indexOf('NCMR') === 0 || number.indexOf('NCR') === 0) {
+    return 'quality';
+  }
+
+  return 'item';
+}
+
+/**
  * Generates context-aware prompt with Arena PLM knowledge and user intent
  * @param {string} itemContent - Item content
  * @param {string} userPrompt - User's presentation intent
  * @param {string} detailLevel - Detail level (brief, medium, detailed)
  * @param {number} itemIndex - Current item number
  * @param {number} totalItems - Total items in presentation
+ * @param {string} objectType - Object type (item, change, quality)
+ * @param {Object} schema - Schema configuration
  * @return {string} Context-aware prompt for AI
  */
-function generateContextAwarePrompt(itemContent, userPrompt, detailLevel, itemIndex, totalItems) {
+function generateContextAwarePrompt(itemContent, userPrompt, detailLevel, itemIndex, totalItems, objectType, schema) {
   // Arena PLM Context
   var arenaContext = `You are an AI assistant helping create a presentation from Arena PLM data.
 
@@ -129,6 +208,20 @@ SLIDE POSITION: This is slide ${itemIndex} of ${totalItems} in the presentation.
 
   var instruction = detailInstructions[detailLevel] || detailInstructions['medium'];
 
+  // Get custom instructions from schema
+  var objectSchema = schema[objectType + 's'] || schema.items; // 'items', 'changes', 'quality'
+  var customInstructions = objectSchema.instructions || '';
+
+  // Build object-specific requirements
+  var objectTypeInstructions = '';
+  if (objectType === 'quality') {
+    objectTypeInstructions = '- This is a QUALITY RECORD (NCMR/CAPA): Emphasize problem description, root cause, containment actions, corrective actions, and preventive measures\n';
+  } else if (objectType === 'change') {
+    objectTypeInstructions = '- This is a CHANGE (ECO): Emphasize what changed, why it changed, the impact, status, and timeline\n';
+  } else {
+    objectTypeInstructions = '- This is an ITEM: Emphasize purpose, specifications, current status, lifecycle phase, and key attributes\n';
+  }
+
   var fullPrompt = arenaContext + '\n' +
     'TASK:\n' +
     instruction + '\n\n' +
@@ -136,12 +229,16 @@ SLIDE POSITION: This is slide ${itemIndex} of ${totalItems} in the presentation.
     itemContent + '\n\n' +
     'REQUIREMENTS:\n' +
     '- Focus on information relevant to: ' + userPrompt + '\n' +
+    objectTypeInstructions +
     '- Use clear, professional language appropriate for the audience\n' +
-    '- Highlight key technical details, status, and implications\n' +
-    '- If this is a quality record (NCMR), emphasize problem, root cause, and corrective action\n' +
-    '- If this is a change (ECO), emphasize what changed, why, and impact\n' +
-    '- If this is an item, emphasize purpose, specifications, and current status\n\n' +
-    'FORMAT:\n' +
+    '- Highlight key technical details, status, and implications\n';
+
+  // Add custom instructions if provided
+  if (customInstructions) {
+    fullPrompt += '- CUSTOM INSTRUCTIONS: ' + customInstructions + '\n';
+  }
+
+  fullPrompt += '\nFORMAT:\n' +
     'Provide your response in this exact format:\n\n' +
     'MAIN CONTENT:\n' +
     '[Bullet points for the slide - these will be displayed prominently]\n\n' +
