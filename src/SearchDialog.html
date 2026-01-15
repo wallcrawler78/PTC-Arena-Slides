@@ -576,19 +576,26 @@
     }
 
     function generateSlides(items) {
-      // Disable buttons
-      document.getElementById('generateFromSelectionBtn').disabled = true;
-      document.getElementById('generateFromCollectionBtn').disabled = true;
-      document.getElementById('generateFromSelectionBtn').textContent = 'Generating...';
-
-      // Call server-side function
+      // Show the prompt dialog where user describes presentation intent
+      // The prompt dialog will handle the actual generation
       google.script.run
-        .withSuccessHandler(onGenerateSuccess)
-        .withFailureHandler(onGenerateError)
-        .generateSlidesFromArenaItems(items);
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            // Prompt dialog will open
+            // Close this search dialog
+            google.script.host.close();
+          } else {
+            alert('Error: ' + result.message);
+          }
+        })
+        .withFailureHandler(function(error) {
+          alert('Error: ' + error.message);
+        })
+        .prepareToGenerateSlides(items);
     }
 
     function onGenerateSuccess(result) {
+      // This is no longer used - kept for compatibility
       if (result.success) {
         alert(result.message + '\n\nClosing search dialog...');
         google.script.host.close();
@@ -601,6 +608,7 @@
     }
 
     function onGenerateError(error) {
+      // This is no longer used - kept for compatibility
       alert('Error: ' + error.message);
       document.getElementById('generateFromSelectionBtn').disabled = false;
       document.getElementById('generateFromCollectionBtn').disabled = false;

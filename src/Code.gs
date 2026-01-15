@@ -133,15 +133,83 @@ function showAboutDialog() {
 }
 
 /**
- * Generates slides from selected Arena items
+ * Stores selected items temporarily for the prompt dialog
+ * Using Cache to pass data between dialogs
+ */
+var TEMP_ITEMS_KEY = 'temp_selected_items';
+
+/**
+ * Prepares to generate slides - stores items and shows prompt dialog
+ * Called from SearchDialog
  * @param {Array} selectedItems - Array of Arena item objects
+ */
+function prepareToGenerateSlides(selectedItems) {
+  try {
+    if (!selectedItems || selectedItems.length === 0) {
+      throw new Error('No items selected');
+    }
+
+    // Store items in cache temporarily
+    var cache = CacheService.getUserCache();
+    cache.put(TEMP_ITEMS_KEY, JSON.stringify(selectedItems), 600); // 10 minutes
+    Logger.log('Stored ' + selectedItems.length + ' items in cache');
+
+    // Show prompt dialog
+    var html = HtmlService.createHtmlOutputFromFile('PresentationPromptDialog')
+      .setWidth(650)
+      .setHeight(550);
+    SlidesApp.getUi().showModalDialog(html, 'Describe Your Presentation');
+
+    return { success: true };
+  } catch (error) {
+    Logger.log('Error preparing to generate: ' + error.message);
+    return { success: false, message: error.message };
+  }
+}
+
+/**
+ * Retrieves temporarily stored items from cache
+ * Called from PresentationPromptDialog
+ * @return {Array} Array of Arena item objects
+ */
+function getTempSelectedItems() {
+  try {
+    var cache = CacheService.getUserCache();
+    var cachedData = cache.get(TEMP_ITEMS_KEY);
+
+    if (!cachedData) {
+      Logger.log('No items found in cache');
+      return [];
+    }
+
+    var items = JSON.parse(cachedData);
+    Logger.log('Retrieved ' + items.length + ' items from cache');
+    return items;
+  } catch (error) {
+    Logger.log('Error retrieving items from cache: ' + error.message);
+    return [];
+  }
+}
+
+/**
+ * Generates slides with user's presentation intent
+ * Called from PresentationPromptDialog
+ * @param {Array} selectedItems - Array of Arena item objects
+ * @param {string} userPrompt - User's description of presentation intent
  * @return {Object} Result with success status and message
  */
-function generateSlidesFromArenaItems(selectedItems) {
+function generateSlidesWithPrompt(selectedItems, userPrompt) {
   try {
     if (!selectedItems || selectedItems.length === 0) {
       return { success: false, message: 'No items selected' };
     }
+
+    if (!userPrompt || userPrompt.trim() === '') {
+      return { success: false, message: 'Please provide presentation intent' };
+    }
+
+    Logger.log('Generating slides with user prompt: ' + userPrompt);
+    Logger.log('Number of items: ' + selectedItems.length);
 
     var presentation = SlidesApp.getActivePresentation();
     var slidesCreated = 0;
@@ -150,10 +218,11 @@ function generateSlidesFromArenaItems(selectedItems) {
       var item = selectedItems[i];
 
       // Get detailed item information from Arena
-      var itemDetails = getArenaItemDetails(item.guid);
+      var itemGuid = item.guid || item.Guid;
+      var itemDetails = getArenaItemDetails(itemGuid);
 
-      // Generate AI summary using Gemini
-      var summary = generateAISummary(itemDetails);
+      // Generate AI summary using Gemini with user context
+      var summary = generateAISummaryWithContext(itemDetails, userPrompt, i + 1, selectedItems.length);
 
       // Create slide with content
       createSlideWithContent(presentation, item, summary);
@@ -173,6 +242,16 @@ function generateSlidesFromArenaItems(selectedItems) {
       message: 'Error: ' + error.message
     };
   }
+}
+
+/**
+ * Legacy function for backward compatibility
+ * @deprecated Use generateSlidesWithPrompt instead
+ */
+function generateSlidesFromArenaItems(selectedItems) {
+  // Provide a default generic prompt
+  var defaultPrompt = 'Provide a comprehensive technical summary of these Arena PLM items.';
+  return generateSlidesWithPrompt(selectedItems, defaultPrompt);
 }
 
 /**

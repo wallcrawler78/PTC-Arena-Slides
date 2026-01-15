@@ -7,11 +7,14 @@
 var GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
 
 /**
- * Generates AI summary of Arena item content
+ * Generates AI summary with user context and Arena PLM knowledge
  * @param {Object} itemDetails - Full Arena item details
+ * @param {string} userPrompt - User's presentation intent
+ * @param {number} itemIndex - Current item index (1-based)
+ * @param {number} totalItems - Total number of items
  * @return {Object} Summary object with mainContent and detailedNotes
  */
-function generateAISummary(itemDetails) {
+function generateAISummaryWithContext(itemDetails, userPrompt, itemIndex, totalItems) {
   try {
     var apiKey = getGeminiApiKey();
 
@@ -20,14 +23,14 @@ function generateAISummary(itemDetails) {
       return generateBasicSummary(itemDetails);
     }
 
-    // Prepare content for AI
+    // Prepare content for AI with Arena context
     var itemContent = prepareItemContentForAI(itemDetails);
 
     // Get AI detail level preference
     var detailLevel = PropertiesService.getUserProperties().getProperty(AI_DETAIL_LEVEL_KEY) || 'medium';
 
-    // Generate prompt based on detail level
-    var prompt = generatePrompt(itemContent, detailLevel);
+    // Generate context-aware prompt
+    var prompt = generateContextAwarePrompt(itemContent, userPrompt, detailLevel, itemIndex, totalItems);
 
     // Call Gemini API
     var summary = callGeminiAPI(prompt, apiKey);
@@ -39,6 +42,15 @@ function generateAISummary(itemDetails) {
     Logger.log('Falling back to basic summary');
     return generateBasicSummary(itemDetails);
   }
+}
+
+/**
+ * Legacy function for backward compatibility
+ * @deprecated Use generateAISummaryWithContext instead
+ */
+function generateAISummary(itemDetails) {
+  var defaultPrompt = 'Provide a technical summary suitable for engineering review.';
+  return generateAISummaryWithContext(itemDetails, defaultPrompt, 1, 1);
 }
 
 /**
@@ -78,23 +90,74 @@ function prepareItemContentForAI(itemDetails) {
 }
 
 /**
- * Generates prompt for Gemini based on detail level
+ * Generates context-aware prompt with Arena PLM knowledge and user intent
  * @param {string} itemContent - Item content
+ * @param {string} userPrompt - User's presentation intent
  * @param {string} detailLevel - Detail level (brief, medium, detailed)
- * @return {string} Prompt for AI
+ * @param {number} itemIndex - Current item number
+ * @param {number} totalItems - Total items in presentation
+ * @return {string} Context-aware prompt for AI
  */
-function generatePrompt(itemContent, detailLevel) {
-  var basePrompt = 'You are creating a presentation slide about a product/item from Arena PLM. ';
+function generateContextAwarePrompt(itemContent, userPrompt, detailLevel, itemIndex, totalItems) {
+  // Arena PLM Context
+  var arenaContext = `You are an AI assistant helping create a presentation from Arena PLM data.
 
+ARENA PLM CONTEXT:
+- Arena is a Product Lifecycle Management system used for managing items, changes, and quality processes
+- Items include: Parts, assemblies, documents, and other product components
+- Key Arena concepts:
+  * Item Number: Unique identifier (e.g., "900-00001", "ECO-000123", "NCMR-456")
+  * Lifecycle Phase: Status like "Design", "Production", "Obsolete"
+  * Category: Classification of the item type
+  * Revisions: Version history (Working revision is editable, released revisions are locked)
+  * Changes (ECOs): Engineering Change Orders that formally document modifications
+  * Quality Records (NCMRs/CAPAs): Nonconformance reports and corrective actions
+  * BOM: Bill of Materials showing assemblies and components
+
+USER'S PRESENTATION GOAL:
+${userPrompt}
+
+SLIDE POSITION: This is slide ${itemIndex} of ${totalItems} in the presentation.
+`;
+
+  // Detail level instructions
   var detailInstructions = {
-    'brief': 'Create a concise, bullet-point summary (3-5 bullets) highlighting only the most critical information.',
-    'medium': 'Create a clear summary with key points (5-7 bullets) covering the main aspects of this item.',
-    'detailed': 'Create a comprehensive summary with detailed bullets (7-10 points) covering all important aspects and technical details.'
+    'brief': 'Create a concise, executive-level summary (3-5 bullets) focusing on key takeaways relevant to the presentation goal.',
+    'medium': 'Create a balanced summary (5-7 bullets) with important details that support the presentation narrative.',
+    'detailed': 'Create a comprehensive technical summary (7-10 bullets) with full context and details for deep understanding.'
   };
 
   var instruction = detailInstructions[detailLevel] || detailInstructions['medium'];
 
-  return basePrompt + instruction + '\n\nItem Information:\n' + itemContent + '\n\nProvide your response in this format:\n\nMAIN CONTENT:\n[Bullet points for slide]\n\nDETAILED NOTES:\n[Additional speaker notes]';
+  var fullPrompt = arenaContext + '\n' +
+    'TASK:\n' +
+    instruction + '\n\n' +
+    'ARENA ITEM DATA:\n' +
+    itemContent + '\n\n' +
+    'REQUIREMENTS:\n' +
+    '- Focus on information relevant to: ' + userPrompt + '\n' +
+    '- Use clear, professional language appropriate for the audience\n' +
+    '- Highlight key technical details, status, and implications\n' +
+    '- If this is a quality record (NCMR), emphasize problem, root cause, and corrective action\n' +
+    '- If this is a change (ECO), emphasize what changed, why, and impact\n' +
+    '- If this is an item, emphasize purpose, specifications, and current status\n\n' +
+    'FORMAT:\n' +
+    'Provide your response in this exact format:\n\n' +
+    'MAIN CONTENT:\n' +
+    '[Bullet points for the slide - these will be displayed prominently]\n\n' +
+    'DETAILED NOTES:\n' +
+    '[Additional speaker notes and context - these will be in presenter notes]';
+
+  return fullPrompt;
+}
+
+/**
+ * Legacy prompt generator for backward compatibility
+ * @deprecated Use generateContextAwarePrompt instead
+ */
+function generatePrompt(itemContent, detailLevel) {
+  var defaultPrompt = 'Provide a technical summary suitable for engineering review.';
+  return generateContextAwarePrompt(itemContent, defaultPrompt, detailLevel, 1, 1);
 }
 
 /**
