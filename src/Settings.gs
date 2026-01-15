@@ -238,42 +238,24 @@ function getSchemaSettings() {
     var schemaJson = userProps.getProperty('schema_config');
 
     if (!schemaJson) {
-      // Return default schema with all fields selected
-      return getDefaultSchema();
+      // No saved schema - return empty with note that discovery is needed
+      Logger.log('No saved schema found - will need to discover from Arena');
+      return {
+        items: { fields: [], instructions: '' },
+        changes: { fields: [], instructions: '' },
+        quality: { fields: [], instructions: '' }
+      };
     }
 
     return JSON.parse(schemaJson);
   } catch (error) {
     Logger.log('Error loading schema settings: ' + error.message);
-    return getDefaultSchema();
+    return {
+      items: { fields: [], instructions: '' },
+      changes: { fields: [], instructions: '' },
+      quality: { fields: [], instructions: '' }
+    };
   }
-}
-
-/**
- * Returns default schema configuration with all fields selected
- * @return {Object} Default schema
- */
-function getDefaultSchema() {
-  return {
-    items: {
-      fields: ['number', 'name', 'description', 'category', 'lifecyclePhase', 'revisionNumber',
-               'owner', 'creationDateTime', 'effectivityDate', 'procurementType', 'uom',
-               'offTheShelf', 'status', 'cost', 'notes'],
-      instructions: ''
-    },
-    changes: {
-      fields: ['number', 'title', 'description', 'status', 'category', 'severity', 'effectivityType',
-               'creator', 'creationDateTime', 'submittedDateTime', 'targetImplementationDate',
-               'implementationDate', 'routingStatus', 'impactedItems', 'reason'],
-      instructions: ''
-    },
-    quality: {
-      fields: ['number', 'title', 'description', 'status', 'category', 'severity', 'problemDescription',
-               'rootCause', 'containmentAction', 'correctiveAction', 'preventiveAction',
-               'creator', 'creationDateTime', 'closureDate', 'impactedItems', 'disposition'],
-      instructions: ''
-    }
-  };
 }
 
 /**
