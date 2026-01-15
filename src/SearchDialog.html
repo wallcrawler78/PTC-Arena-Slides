@@ -302,7 +302,11 @@
         <span class="collection-count" id="collectionCount">0</span>
         <span class="collection-text">items in collection (from multiple searches)</span>
       </div>
-      <button class="btn-clear-collection" onclick="clearCollection()">Clear Collection</button>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn-clear-collection" onclick="showCollectionHistory()">📚 Load Saved</button>
+        <button class="btn-clear-collection" onclick="saveCurrentCollection()">💾 Save</button>
+        <button class="btn-clear-collection" onclick="clearCollection()">Clear</button>
+      </div>
     </div>
 
     <div class="search-controls">
@@ -650,6 +654,98 @@
         performSearch();
       }
     });
+
+    // Collection History Functions
+    function saveCurrentCollection() {
+      if (collection.length === 0) {
+        alert('No items in collection to save');
+        return;
+      }
+
+      var name = prompt('Name this collection (or leave blank for auto-name):', '');
+      if (name === null) return; // User cancelled
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            alert(result.message + '\n\nThis collection is now saved and can be loaded later.');
+          } else {
+            alert('Error: ' + result.message);
+          }
+        })
+        .withFailureHandler(function(error) {
+          alert('Error saving collection: ' + error.message);
+        })
+        .saveCollectionToHistory(collection, name);
+    }
+
+    function showCollectionHistory() {
+      google.script.run
+        .withSuccessHandler(function(history) {
+          if (!history || history.length === 0) {
+            alert('No saved collections found.\n\nCreate a collection and click "💾 Save" to save it for later.');
+            return;
+          }
+
+          // Build selection dialog
+          var message = 'Select a collection to load:\n\n';
+          history.forEach(function(coll, index) {
+            var date = new Date(coll.timestamp);
+            var dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+            message += (index + 1) + '. ' + coll.name + ' (' + coll.itemCount + ' items)\n';
+            message += '   ' + dateStr + '\n\n';
+          });
+          message += '0. Cancel\n\nEnter number:';
+
+          var choice = prompt(message, '1');
+          if (choice === null || choice === '0') return;
+
+          var index = parseInt(choice) - 1;
+          if (isNaN(index) || index < 0 || index >= history.length) {
+            alert('Invalid selection');
+            return;
+          }
+
+          loadCollectionByIndex(index);
+        })
+        .withFailureHandler(function(error) {
+          alert('Error loading history: ' + error.message);
+        })
+        .getCollectionHistory();
+    }
+
+    function loadCollectionByIndex(index) {
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            // Replace current collection
+            collection = result.items || [];
+            collectionGuids.clear();
+
+            collection.forEach(function(item) {
+              var guid = item.guid || item.Guid;
+              collectionGuids.add(guid);
+            });
+
+            // Refresh display if results are showing
+            if (searchResults.length > 0) {
+              displayResults(searchResults);
+            }
+
+            updateUI();
+
+            alert('Loaded collection: ' + result.name + '\n' +
+                  collection.length + ' items loaded\n\n' +
+                  'You can now generate slides or add more items to this collection.');
+          } else {
+            alert('Error: ' + result.message);
+          }
+        })
+        .withFailureHandler(function(error) {
+          alert('Error: ' + error.message);
+        })
+        .loadCollection(index);
+    }
   </script>
 </body>
 </html>

@@ -183,3 +183,37 @@ function getLoginStatus() {
     workspaceId: getArenaWorkspaceId() || ''
   };
 }
+
+/**
+ * Saves login info for "Remember me" feature
+ * @param {string} email - User email
+ * @param {string} workspaceId - Workspace ID
+ */
+function saveLoginInfo(email, workspaceId) {
+  var userProps = PropertiesService.getUserProperties();
+  userProps.setProperties({
+    'saved_arena_email': email,
+    'saved_arena_workspace_id': workspaceId
+  });
+}
+
+/**
+ * Gets saved login info
+ * @return {Object} Saved email and workspaceId
+ */
+function getSavedLoginInfo() {
+  var userProps = PropertiesService.getUserProperties();
+  return {
+    email: userProps.getProperty('saved_arena_email') || '',
+    workspaceId: userProps.getProperty('saved_arena_workspace_id') || ''
+  };
+}
+
+/**
+ * Clears saved login info
+ */
+function clearLoginInfo() {
+  var userProps = PropertiesService.getUserProperties();
+  userProps.deleteProperty('saved_arena_email');
+  userProps.deleteProperty('saved_arena_workspace_id');
+}

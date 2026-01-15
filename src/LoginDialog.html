@@ -144,6 +144,14 @@
         <div class="help-text">Your Arena workspace identifier (found in Arena settings)</div>
       </div>
 
+      <div class="form-group" style="margin-top: 8px;">
+        <label style="display: flex; align-items: center; font-weight: normal; cursor: pointer;">
+          <input type="checkbox" id="rememberMe" checked style="margin-right: 8px; width: auto;">
+          Remember email and workspace ID
+        </label>
+        <div class="help-text">Only your password needs to be entered each time</div>
+      </div>
+
       <div class="button-group">
         <button type="button" class="btn-secondary" onclick="closeDialog()">Cancel</button>
         <button type="button" class="btn-primary" id="loginBtn" onclick="handleLogin()">Login</button>
@@ -157,10 +165,26 @@
   </div>
 
   <script>
+    // Load saved credentials on page load
+    window.onload = function() {
+      google.script.run
+        .withSuccessHandler(function(saved) {
+          if (saved && saved.email) {
+            document.getElementById('email').value = saved.email;
+            document.getElementById('workspaceId').value = saved.workspaceId || '';
+            document.getElementById('rememberMe').checked = true;
+            // Focus password field since other fields are pre-filled
+            document.getElementById('password').focus();
+          }
+        })
+        .getSavedLoginInfo();
+    };
+
     function handleLogin() {
       var email = document.getElementById('email').value.trim();
       var password = document.getElementById('password').value;
       var workspaceId = document.getElementById('workspaceId').value.trim();
+      var rememberMe = document.getElementById('rememberMe').checked;
 
       // Validate inputs
       if (!email || !password || !workspaceId) {
@@ -172,6 +196,13 @@
       if (!isValidEmail(email)) {
         showMessage('Please enter a valid email address', 'error');
         return;
+      }
+
+      // Save or clear remembered credentials
+      if (rememberMe) {
+        google.script.run.saveLoginInfo(email, workspaceId);
+      } else {
+        google.script.run.clearLoginInfo();
       }
 
       // Disable form and show loading
