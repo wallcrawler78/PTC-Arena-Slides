@@ -196,3 +196,76 @@ function clearCollectionHistory() {
   userProps.deleteProperty(COLLECTION_HISTORY_KEY);
   return { success: true, message: 'Collection history cleared' };
 }
+
+/**
+ * Renames a collection
+ * @param {number} index - Index of collection to rename
+ * @param {string} newName - New name for the collection
+ * @return {Object} Result with success status
+ */
+function renameCollection(index, newName) {
+  try {
+    var history = getCollectionHistory();
+
+    if (index < 0 || index >= history.length) {
+      return { success: false, message: 'Invalid collection index' };
+    }
+
+    if (!newName || newName.trim() === '') {
+      return { success: false, message: 'Name cannot be empty' };
+    }
+
+    history[index].name = newName.trim();
+
+    // Save updated history
+    var userProps = PropertiesService.getUserProperties();
+    userProps.setProperty(COLLECTION_HISTORY_KEY, JSON.stringify(history));
+
+    return {
+      success: true,
+      message: 'Collection renamed to: ' + newName
+    };
+
+  } catch (error) {
+    Logger.log('Error renaming collection: ' + error.message);
+    return {
+      success: false,
+      message: 'Error: ' + error.message
+    };
+  }
+}
+
+/**
+ * Loads a collection and opens the search dialog with those items
+ * @param {number} index - Index of collection to load
+ * @return {Object} Result with success status
+ */
+function loadCollectionAndOpenSearch(index) {
+  try {
+    var collection = loadCollection(index);
+
+    if (!collection.success) {
+      return collection;
+    }
+
+    // Store items in cache for search dialog to pick up
+    var cache = CacheService.getUserCache();
+    cache.put('loaded_collection', JSON.stringify(collection.items), 600);
+    cache.put('loaded_collection_name', collection.name, 600);
+
+    // Open search dialog
+    showSearchDialog();
+
+    return {
+      success: true,
+      message: 'Collection loaded'
+    };
+
+  } catch (error) {
+    Logger.log('Error loading collection for search: ' + error.message);
+    return {
+      success: false,
+      message: 'Error: ' + error.message
+    };
+  }
+}

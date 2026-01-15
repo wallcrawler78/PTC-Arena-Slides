@@ -153,6 +153,39 @@ var ArenaAPIClient = (function() {
   };
 
   /**
+   * Gets file attachments for an item
+   * @param {string} guid - Item GUID
+   * @return {Array} Array of file objects
+   */
+  ArenaAPIClient.prototype.getItemFiles = function(guid) {
+    try {
+      var endpoint = '/items/' + guid + '/files';
+      var response = this.makeRequest(endpoint, { method: 'GET' });
+      return response.results || response.Results || [];
+    } catch (error) {
+      Logger.log('Error fetching files for item ' + guid + ': ' + error.message);
+      return [];
+    }
+  };
+
+  /**
+   * Gets file content/download URL
+   * @param {string} itemGuid - Item GUID
+   * @param {string} fileGuid - File GUID
+   * @return {Object} File content or URL information
+   */
+  ArenaAPIClient.prototype.getFileContent = function(itemGuid, fileGuid) {
+    try {
+      var endpoint = '/items/' + itemGuid + '/files/' + fileGuid + '/content';
+      // This returns the actual file content or a download URL
+      return this.makeRequest(endpoint, { method: 'GET' });
+    } catch (error) {
+      Logger.log('Error fetching file content: ' + error.message);
+      return null;
+    }
+  };
+
+  /**
    * Searches for items by number
    * @param {string} itemNumber - Item number to search for
    * @return {Object|null} Item object or null if not found
@@ -383,4 +416,48 @@ function filterBySearchTerm(items, searchTerm) {
   }
 
   return results;
+}
+
+/**
+ * Gets image attachments for an Arena item
+ * @param {string} itemGuid - Item GUID
+ * @return {Array} Array of image file objects with download info
+ */
+function getItemImages(itemGuid) {
+  try {
+    var client = new ArenaAPIClient();
+    var files = client.getItemFiles(itemGuid);
+
+    if (!files || files.length === 0) {
+      return [];
+    }
+
+    // Filter for image files
+    var imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
+    var images = [];
+
+    for (var i = 0; i < files.length; i++) {
+      var file = files[i];
+      var fileName = file.title || file.Title || file.name || file.Name || '';
+      var extension = fileName.split('.').pop().toLowerCase();
+
+      if (imageExtensions.indexOf(extension) !== -1) {
+        images.push({
+          guid: file.guid || file.Guid,
+          name: fileName,
+          title: file.title || file.Title || fileName,
+          extension: extension,
+          size: file.size || file.Size || 0,
+          edition: file.edition || file.Edition
+        });
+      }
+    }
+
+    Logger.log('Found ' + images.length + ' image(s) for item ' + itemGuid);
+    return images;
+
+  } catch (error) {
+    Logger.log('Error getting item images: ' + error.message);
+    return [];
+  }
 }

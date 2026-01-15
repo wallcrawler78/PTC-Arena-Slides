@@ -138,6 +138,7 @@ function onOpen() {
 
   ui.createMenu('Arena Slides')
     .addItem('Search Arena Items', 'showSearchDialog')
+    .addItem('Manage Collections', 'showCollectionManager')
     .addItem('Refresh Slides', 'refreshSlides')
     .addSeparator()
     .addItem('Settings', 'showSettingsDialog')
@@ -207,6 +208,16 @@ function showAboutDialog() {
 }
 
 /**
+ * Shows the collection manager dialog
+ */
+function showCollectionManager() {
+  var html = HtmlService.createHtmlOutputFromFile('CollectionManagerDialog')
+    .setWidth(700)
+    .setHeight(600);
+  SlidesApp.getUi().showModalDialog(html, 'Manage Collections');
+}
+
+/**
  * Stores selected items temporarily for the prompt dialog
  * Using Cache to pass data between dialogs
  */
@@ -266,6 +277,40 @@ function getTempSelectedItems() {
 }
 
 /**
+ * Retrieves loaded collection from cache
+ * Called from SearchDialog on startup
+ * @return {Object} Object with items array and name
+ */
+function getLoadedCollection() {
+  try {
+    var cache = CacheService.getUserCache();
+    var itemsData = cache.get('loaded_collection');
+    var nameData = cache.get('loaded_collection_name');
+
+    if (!itemsData) {
+      return null;
+    }
+
+    var items = JSON.parse(itemsData);
+    var name = nameData || 'Loaded Collection';
+
+    Logger.log('Retrieved loaded collection: ' + name + ' (' + items.length + ' items)');
+
+    // Clear cache after reading
+    cache.remove('loaded_collection');
+    cache.remove('loaded_collection_name');
+
+    return {
+      items: items,
+      name: name
+    };
+  } catch (error) {
+    Logger.log('Error retrieving loaded collection: ' + error.message);
+    return null;
+  }
+}
+
+/**
  * Generates slides with user's presentation intent
  * Called from PresentationPromptDialog
  * @param {Array} selectedItems - Array of Arena item objects
@@ -306,11 +351,18 @@ function generateSlidesWithPrompt(selectedItems, userPrompt) {
       Logger.log('Fetching details for ' + itemNumber + ' (type: ' + objectType + ', GUID: ' + itemGuid + ')');
       var itemDetails = getArenaItemDetails(itemGuid, objectType);
 
+      // Get images for items (not for ECOs or Quality records)
+      var images = [];
+      if (objectType === 'item') {
+        images = getItemImages(itemGuid);
+        Logger.log('Found ' + images.length + ' image(s) for ' + itemNumber);
+      }
+
       // Generate AI summary using Gemini with user context
       var summary = generateAISummaryWithContext(itemDetails, userPrompt, i + 1, selectedItems.length, objectType);
 
-      // Create slide with content
-      createSlideWithContent(presentation, item, summary, objectType);
+      // Create slide with content and images
+      createSlideWithContent(presentation, item, summary, objectType, images);
       slidesCreated++;
     }
 
@@ -626,8 +678,9 @@ function updateSlideContent(slide, item, summary, objectType) {
  * @param {Object} item - Arena item object
  * @param {Object} summary - AI-generated summary
  * @param {string} objectType - Type of object (item, change, quality)
+ * @param {Array} images - Array of image file objects (optional)
  */
-function createSlideWithContent(presentation, item, summary, objectType) {
+function createSlideWithContent(presentation, item, summary, objectType, images) {
   var slide = presentation.appendSlide(SlidesApp.PredefinedLayout.TITLE_AND_BODY);
 
   // Set title
@@ -640,13 +693,87 @@ function createSlideWithContent(presentation, item, summary, objectType) {
   var bodyText = bodyShape.getText();
   bodyText.setText(summary.mainContent || 'No content available');
 
+  // Add image if available
+  if (images && images.length > 0) {
+    try {
+      addImageToSlide(slide, item, images[0], bodyShape);
+    } catch (imageError) {
+      Logger.log('Could not add image to slide: ' + imageError.message);
+      // Continue without image
+    }
+  }
+
   // Store metadata in speaker notes for refresh capability
   var itemGuid = item.guid || item.Guid;
+  var imageInfo = '';
+  if (images && images.length > 0) {
+    imageInfo = 'Images: ' + images.length + ' (' + images[0].name + ')\n';
+  }
+
   var metadata = '\n\n---\n[Arena Slides Metadata - Do Not Delete]\n' +
                  'GUID: ' + itemGuid + '\n' +
                  'Type: ' + objectType + '\n' +
+                 imageInfo +
                  'Last Updated: ' + new Date().toISOString();
 
   var notesText = (summary.detailedNotes || '') + metadata;
   slide.getNotesPage().getSpeakerNotesShape().getText().setText(notesText);
+}
+
+/**
+ * Adds an image to a slide
+ * @param {Slide} slide - The slide object
+ * @param {Object} item - Arena item object
+ * @param {Object} imageInfo - Image file information
+ * @param {Shape} bodyShape - Body text shape to adjust size
+ */
+function addImageToSlide(slide, item, imageInfo, bodyShape) {
+  try {
+    // Get the item GUID
+    var itemGuid = item.guid || item.Guid;
+
+    // Fetch the image file from Arena
+    var client = new ArenaAPIClient();
+    var fileContent = client.getFileContent(itemGuid, imageInfo.guid);
+
+    if (!fileContent) {
+      Logger.log('No file content returned for image');
+      return;
+    }
+
+    // Arena returns download URL in the response
+    var downloadUrl = fileContent.url || fileContent.URL || fileContent.downloadUrl;
+
+    if (!downloadUrl) {
+      Logger.log('No download URL found in file content response');
+      return;
+    }
+
+    // Fetch the image data
+    var imageBlob = UrlFetchApp.fetch(downloadUrl, {
+      headers: {
+        'arena_session_id': getArenaSessionId()
+      },
+      muteHttpExceptions: true
+    }).getBlob();
+
+    // Resize body text box to make room for image
+    // Standard slide is 720 x 540 points
+    bodyShape.setWidth(350); // Left side for text
+    bodyShape.setLeft(50);
+
+    // Insert image on the right side
+    var imageWidth = 300;
+    var imageHeight = 225;
+    var imageLeft = 400;
+    var imageTop = 150;
+
+    slide.insertImage(imageBlob, imageLeft, imageTop, imageWidth, imageHeight);
+
+    Logger.log('Successfully added image to slide: ' + imageInfo.name);
+
+  } catch (error) {
+    Logger.log('Error adding image to slide: ' + error.message);
+    throw error;
+  }
 }

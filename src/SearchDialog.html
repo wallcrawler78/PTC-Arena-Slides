@@ -372,7 +372,35 @@
     var collectionGuids = new Set(); // Track GUIDs to prevent duplicates
 
     // Initialize
-    updateUI();
+    window.onload = function() {
+      checkForLoadedCollection();
+    };
+
+    function checkForLoadedCollection() {
+      google.script.run
+        .withSuccessHandler(function(loaded) {
+          if (loaded && loaded.items && loaded.items.length > 0) {
+            // Load items into collection
+            collection = loaded.items;
+            collection.forEach(function(item) {
+              var guid = item.guid || item.Guid;
+              collectionGuids.add(guid);
+            });
+
+            // Show notification
+            alert('Loaded collection: "' + loaded.name + '"\n' + collection.length + ' items loaded into collection.');
+
+            updateUI();
+          } else {
+            updateUI();
+          }
+        })
+        .withFailureHandler(function(error) {
+          Logger.log('Error checking for loaded collection: ' + error.message);
+          updateUI();
+        })
+        .getLoadedCollection();
+    }
 
     function performSearch() {
       var searchTerm = document.getElementById('searchInput').value.trim();
