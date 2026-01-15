@@ -26,6 +26,48 @@
       font-size: 24px;
       font-weight: 400;
     }
+    .collection-banner {
+      background: #e8f0fe;
+      border: 1px solid #1a73e8;
+      border-radius: 4px;
+      padding: 12px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .collection-banner.active {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .collection-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .collection-count {
+      background: #1a73e8;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-weight: 500;
+      font-size: 14px;
+    }
+    .collection-text {
+      color: #202124;
+      font-size: 14px;
+    }
+    .btn-clear-collection {
+      padding: 6px 16px;
+      background: white;
+      color: #1a73e8;
+      border: 1px solid #1a73e8;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .btn-clear-collection:hover {
+      background: #f8f9fa;
+    }
     .search-controls {
       display: flex;
       gap: 12px;
@@ -76,6 +118,21 @@
       font-size: 14px;
       color: #5f6368;
       margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .btn-select-all {
+      padding: 6px 12px;
+      background: white;
+      color: #1a73e8;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .btn-select-all:hover {
+      background: #f8f9fa;
     }
     .results-list {
       background: white;
@@ -96,6 +153,10 @@
     }
     .result-item.selected {
       background-color: #e8f0fe;
+    }
+    .result-item.in-collection {
+      opacity: 0.6;
+      background-color: #f1f3f4;
     }
     .result-number {
       font-weight: 500;
@@ -122,13 +183,28 @@
       color: #5f6368;
       margin-top: 8px;
     }
+    .result-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #34a853;
+      color: white;
+      border-radius: 3px;
+      font-size: 11px;
+      margin-left: 8px;
+    }
     .footer {
       background: white;
       padding: 16px 20px;
       border-top: 1px solid #e0e0e0;
+    }
+    .footer-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-bottom: 12px;
+    }
+    .footer-row:last-child {
+      margin-bottom: 0;
     }
     .selected-count {
       font-size: 14px;
@@ -168,6 +244,23 @@
       background-color: #dadce0;
       cursor: not-allowed;
     }
+    .btn-success {
+      padding: 10px 24px;
+      background-color: #34a853;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-success:hover {
+      background-color: #2d8e47;
+    }
+    .btn-success:disabled {
+      background-color: #dadce0;
+      cursor: not-allowed;
+    }
     .empty-state {
       text-align: center;
       padding: 40px;
@@ -202,6 +295,16 @@
 <body>
   <div class="header">
     <h2>Search Arena</h2>
+
+    <!-- Collection Banner -->
+    <div id="collectionBanner" class="collection-banner">
+      <div class="collection-info">
+        <span class="collection-count" id="collectionCount">0</span>
+        <span class="collection-text">items in collection (from multiple searches)</span>
+      </div>
+      <button class="btn-clear-collection" onclick="clearCollection()">Clear Collection</button>
+    </div>
+
     <div class="search-controls">
       <input type="text" id="searchInput" class="search-input" placeholder="Search by number, name, or description...">
       <select id="searchType">
@@ -215,7 +318,8 @@
 
   <div class="content">
     <div id="emptyState" class="empty-state">
-      Enter a search term and click Search to find Arena items
+      Enter a search term and click Search to find Arena items.<br><br>
+      💡 <strong>Tip:</strong> You can run multiple searches and add items to your collection before generating slides!
     </div>
 
     <div id="loading" class="loading" style="display: none;">
@@ -226,24 +330,41 @@
     <div id="resultsContainer" style="display: none;">
       <div class="results-header">
         <span id="resultCount">0 results found</span>
+        <button class="btn-select-all" onclick="selectAllResults()">Select All</button>
       </div>
       <div class="results-list" id="resultsList"></div>
     </div>
   </div>
 
   <div class="footer">
-    <div class="selected-count">
-      <span id="selectedCount">0 items selected</span>
+    <!-- Selection row -->
+    <div class="footer-row">
+      <div class="selected-count">
+        <span id="selectedCount">0 items selected</span> from this search
+      </div>
+      <div class="button-group">
+        <button class="btn-secondary" id="addToCollectionBtn" onclick="addToCollection()" disabled>Add to Collection</button>
+      </div>
     </div>
-    <div class="button-group">
+
+    <!-- Action row -->
+    <div class="footer-row">
       <button class="btn-secondary" onclick="closeDialog()">Cancel</button>
-      <button class="btn-primary" id="generateBtn" onclick="generateSlides()" disabled>Generate Slides</button>
+      <div class="button-group">
+        <button class="btn-primary" id="generateFromSelectionBtn" onclick="generateFromSelection()" disabled>Generate from Selection</button>
+        <button class="btn-success" id="generateFromCollectionBtn" onclick="generateFromCollection()" disabled>Generate from Collection</button>
+      </div>
     </div>
   </div>
 
   <script>
     var searchResults = [];
     var selectedItems = new Set();
+    var collection = []; // Collection from multiple searches
+    var collectionGuids = new Set(); // Track GUIDs to prevent duplicates
+
+    // Initialize
+    updateUI();
 
     function performSearch() {
       var searchTerm = document.getElementById('searchInput').value.trim();
@@ -253,6 +374,9 @@
         alert('Please enter a search term');
         return;
       }
+
+      // Clear current selection
+      selectedItems.clear();
 
       // Show loading
       document.getElementById('emptyState').style.display = 'none';
@@ -301,12 +425,15 @@
 
       document.getElementById('resultCount').textContent = results.length + ' result' + (results.length !== 1 ? 's' : '') + ' found';
       document.getElementById('resultsContainer').style.display = 'block';
-      updateSelectedCount();
+      updateUI();
     }
 
     function createResultItem(item, index) {
       var div = document.createElement('div');
-      div.className = 'result-item';
+      var itemGuid = item.guid || item.Guid;
+      var isInCollection = collectionGuids.has(itemGuid);
+
+      div.className = 'result-item' + (isInCollection ? ' in-collection' : '');
       div.onclick = function() { toggleSelection(index); };
 
       var number = item.number || item.Number || 'N/A';
@@ -315,10 +442,12 @@
       var category = item.category ? (item.category.name || item.category.Name) : 'N/A';
       var lifecycle = item.lifecyclePhase ? (item.lifecyclePhase.name || item.lifecyclePhase.Name) : 'N/A';
 
+      var inCollectionBadge = isInCollection ? '<span class="result-badge">In Collection</span>' : '';
+
       div.innerHTML = `
-        <input type="checkbox" class="checkbox" ${selectedItems.has(index) ? 'checked' : ''} onclick="event.stopPropagation(); toggleSelection(${index});">
+        <input type="checkbox" class="checkbox" ${selectedItems.has(index) ? 'checked' : ''} ${isInCollection ? 'disabled' : ''} onclick="event.stopPropagation(); toggleSelection(${index});">
         <div style="display: inline-block; vertical-align: top; width: calc(100% - 30px);">
-          <div class="result-number">${number}</div>
+          <div class="result-number">${number}${inCollectionBadge}</div>
           <div class="result-name">${name}</div>
           <div class="result-description">${description}</div>
           <div class="result-meta">Category: ${category} | Lifecycle: ${lifecycle}</div>
@@ -329,6 +458,14 @@
     }
 
     function toggleSelection(index) {
+      var item = searchResults[index];
+      var itemGuid = item.guid || item.Guid;
+
+      // Don't allow selecting items already in collection
+      if (collectionGuids.has(itemGuid)) {
+        return;
+      }
+
       if (selectedItems.has(index)) {
         selectedItems.delete(index);
       } else {
@@ -340,16 +477,81 @@
       items[index].classList.toggle('selected');
       items[index].querySelector('.checkbox').checked = selectedItems.has(index);
 
-      updateSelectedCount();
+      updateUI();
     }
 
-    function updateSelectedCount() {
-      var count = selectedItems.size;
-      document.getElementById('selectedCount').textContent = count + ' item' + (count !== 1 ? 's' : '') + ' selected';
-      document.getElementById('generateBtn').disabled = count === 0;
+    function selectAllResults() {
+      // Select all items not already in collection
+      selectedItems.clear();
+      searchResults.forEach(function(item, index) {
+        var itemGuid = item.guid || item.Guid;
+        if (!collectionGuids.has(itemGuid)) {
+          selectedItems.add(index);
+        }
+      });
+
+      // Update UI
+      var items = document.querySelectorAll('.result-item');
+      items.forEach(function(itemEl, index) {
+        var item = searchResults[index];
+        var itemGuid = item.guid || item.Guid;
+        var isInCollection = collectionGuids.has(itemGuid);
+
+        if (!isInCollection) {
+          itemEl.classList.add('selected');
+          itemEl.querySelector('.checkbox').checked = true;
+        }
+      });
+
+      updateUI();
     }
 
-    function generateSlides() {
+    function addToCollection() {
+      if (selectedItems.size === 0) {
+        alert('Please select at least one item');
+        return;
+      }
+
+      var addedCount = 0;
+      selectedItems.forEach(function(index) {
+        var item = searchResults[index];
+        var itemGuid = item.guid || item.Guid;
+
+        // Only add if not already in collection
+        if (!collectionGuids.has(itemGuid)) {
+          collection.push(item);
+          collectionGuids.add(itemGuid);
+          addedCount++;
+        }
+      });
+
+      // Clear selection
+      selectedItems.clear();
+
+      // Refresh display to show items as "in collection"
+      displayResults(searchResults);
+
+      alert('Added ' + addedCount + ' item(s) to collection!\n\nTotal collection: ' + collection.length + ' items');
+      updateUI();
+    }
+
+    function clearCollection() {
+      if (collection.length === 0) return;
+
+      if (confirm('Clear all ' + collection.length + ' items from collection?')) {
+        collection = [];
+        collectionGuids.clear();
+
+        // Refresh display if results are showing
+        if (searchResults.length > 0) {
+          displayResults(searchResults);
+        }
+
+        updateUI();
+      }
+    }
+
+    function generateFromSelection() {
       if (selectedItems.size === 0) {
         alert('Please select at least one item');
         return;
@@ -359,36 +561,79 @@
         return searchResults[index];
       });
 
-      // Disable button
-      document.getElementById('generateBtn').disabled = true;
-      document.getElementById('generateBtn').textContent = 'Generating...';
+      generateSlides(selected);
+    }
+
+    function generateFromCollection() {
+      if (collection.length === 0) {
+        alert('Collection is empty. Please add items to collection first.');
+        return;
+      }
+
+      if (confirm('Generate slides from all ' + collection.length + ' items in collection?')) {
+        generateSlides(collection);
+      }
+    }
+
+    function generateSlides(items) {
+      // Disable buttons
+      document.getElementById('generateFromSelectionBtn').disabled = true;
+      document.getElementById('generateFromCollectionBtn').disabled = true;
+      document.getElementById('generateFromSelectionBtn').textContent = 'Generating...';
 
       // Call server-side function
       google.script.run
         .withSuccessHandler(onGenerateSuccess)
         .withFailureHandler(onGenerateError)
-        .generateSlidesFromArenaItems(selected);
+        .generateSlidesFromArenaItems(items);
     }
 
     function onGenerateSuccess(result) {
       if (result.success) {
-        alert(result.message);
+        alert(result.message + '\n\nClosing search dialog...');
         google.script.host.close();
       } else {
         alert('Error: ' + result.message);
-        document.getElementById('generateBtn').disabled = false;
-        document.getElementById('generateBtn').textContent = 'Generate Slides';
+        document.getElementById('generateFromSelectionBtn').disabled = false;
+        document.getElementById('generateFromCollectionBtn').disabled = false;
+        document.getElementById('generateFromSelectionBtn').textContent = 'Generate from Selection';
       }
     }
 
     function onGenerateError(error) {
       alert('Error: ' + error.message);
-      document.getElementById('generateBtn').disabled = false;
-      document.getElementById('generateBtn').textContent = 'Generate Slides';
+      document.getElementById('generateFromSelectionBtn').disabled = false;
+      document.getElementById('generateFromCollectionBtn').disabled = false;
+      document.getElementById('generateFromSelectionBtn').textContent = 'Generate from Selection';
+    }
+
+    function updateUI() {
+      // Update selection count
+      document.getElementById('selectedCount').textContent = selectedItems.size + ' item' + (selectedItems.size !== 1 ? 's' : '') + ' selected';
+
+      // Update collection banner
+      var banner = document.getElementById('collectionBanner');
+      if (collection.length > 0) {
+        banner.classList.add('active');
+        document.getElementById('collectionCount').textContent = collection.length;
+      } else {
+        banner.classList.remove('active');
+      }
+
+      // Update button states
+      document.getElementById('addToCollectionBtn').disabled = selectedItems.size === 0;
+      document.getElementById('generateFromSelectionBtn').disabled = selectedItems.size === 0;
+      document.getElementById('generateFromCollectionBtn').disabled = collection.length === 0;
     }
 
     function closeDialog() {
-      google.script.host.close();
+      if (collection.length > 0) {
+        if (confirm('You have ' + collection.length + ' items in your collection. Close without generating slides?')) {
+          google.script.host.close();
+        }
+      } else {
+        google.script.host.close();
+      }
     }
 
     // Handle Enter key in search input

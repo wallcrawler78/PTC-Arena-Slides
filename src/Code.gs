@@ -6,6 +6,58 @@
  */
 
 /**
+ * Authorization test function - Run this first to grant permissions
+ * This function requests all necessary permissions for the script to work
+ *
+ * IMPORTANT: When you click Run, a dialog will pop up asking for permissions.
+ * You MUST click "Review Permissions" and complete the authorization flow!
+ *
+ * HOW TO RUN:
+ * 1. In Apps Script editor, select "authorizeScript" from function dropdown
+ * 2. Click Run button (▶️)
+ * 3. A dialog will pop up - click "Review Permissions"
+ * 4. Select your account
+ * 5. Click "Advanced" then "Go to Arena Slides (unsafe)"
+ * 6. Click "Allow"
+ * 7. Check the Execution Log below - should see "Authorization successful!"
+ */
+function authorizeScript() {
+  // This function triggers authorization for all required scopes
+  // When first run, Google will show an authorization dialog - you must complete it!
+
+  Logger.log('Starting authorization check...');
+
+  // Trigger UrlFetchApp permission (REQUIRED for Arena API)
+  Logger.log('Testing UrlFetchApp permission...');
+  var testResponse = UrlFetchApp.fetch('https://www.google.com', {
+    muteHttpExceptions: true
+  });
+  Logger.log('✅ UrlFetchApp permission granted! (HTTP ' + testResponse.getResponseCode() + ')');
+
+  // Trigger Properties permission (for storing credentials)
+  Logger.log('Testing PropertiesService permission...');
+  var props = PropertiesService.getUserProperties();
+  props.setProperty('test_auth', 'success');
+  props.deleteProperty('test_auth');
+  Logger.log('✅ PropertiesService permission granted!');
+
+  Logger.log('');
+  Logger.log('====================================');
+  Logger.log('✅ AUTHORIZATION SUCCESSFUL!');
+  Logger.log('====================================');
+  Logger.log('All required permissions have been granted.');
+  Logger.log('You can now use Arena Slides!');
+  Logger.log('');
+  Logger.log('Next steps:');
+  Logger.log('1. Go to your Google Slides presentation');
+  Logger.log('2. Refresh the page');
+  Logger.log('3. Click Arena Slides > Login to Arena');
+  Logger.log('====================================');
+
+  return 'Authorization successful! Check the logs above.';
+}
+
+/**
  * Creates custom menu when presentation opens
  */
 function onOpen() {

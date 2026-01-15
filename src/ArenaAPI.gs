@@ -173,12 +173,35 @@ var ArenaAPIClient = (function() {
 
   /**
    * Gets quality records from Arena
+   * Note: Arena's quality endpoint structure varies by workspace configuration
+   * Common endpoints: /qualityprocesses, /quality/processes, /ncrs
    * @return {Array} Array of quality records
    */
   ArenaAPIClient.prototype.getQualityRecords = function() {
-    var endpoint = '/quality?limit=100';
-    var response = this.makeRequest(endpoint, { method: 'GET' });
-    return response.results || response.Results || [];
+    // Try multiple possible endpoints for quality records
+    var possibleEndpoints = [
+      '/qualityprocesses?limit=100',
+      '/quality/processes?limit=100',
+      '/ncrs?limit=100',
+      '/quality?limit=100'
+    ];
+
+    for (var i = 0; i < possibleEndpoints.length; i++) {
+      try {
+        Logger.log('Trying quality endpoint: ' + possibleEndpoints[i]);
+        var response = this.makeRequest(possibleEndpoints[i], { method: 'GET' });
+        var results = response.results || response.Results || [];
+        Logger.log('Found ' + results.length + ' quality records at: ' + possibleEndpoints[i]);
+        return results;
+      } catch (error) {
+        Logger.log('Endpoint ' + possibleEndpoints[i] + ' failed: ' + error.message);
+        // Continue to next endpoint
+      }
+    }
+
+    // If all endpoints fail, return empty array with warning
+    Logger.log('Warning: No quality endpoint found. Quality search is not available.');
+    throw new Error('Quality records are not available in your Arena workspace. Please search for Items or Changes instead.');
   };
 
   return ArenaAPIClient;
@@ -261,18 +284,35 @@ function searchArena(searchTerm, searchType) {
 
     switch (searchType) {
       case 'items':
+        Logger.log('Searching items for: ' + searchTerm);
         return client.searchItems(searchTerm);
+
       case 'changes':
+        Logger.log('Searching changes for: ' + searchTerm);
         var changes = client.getChanges();
         return filterBySearchTerm(changes, searchTerm);
+
       case 'quality':
-        var quality = client.getQualityRecords();
-        return filterBySearchTerm(quality, searchTerm);
+        Logger.log('Searching quality records for: ' + searchTerm);
+        try {
+          var quality = client.getQualityRecords();
+          return filterBySearchTerm(quality, searchTerm);
+        } catch (qualityError) {
+          // Quality endpoint not available - provide helpful error
+          throw new Error('Quality Records search is not available in your Arena workspace.\n\n' +
+                         'This could be because:\n' +
+                         '• Your workspace doesn\'t have quality processes enabled\n' +
+                         '• The quality API endpoint structure is different\n\n' +
+                         'Please try searching for "Items" or "Changes" instead.');
+        }
+
       default:
         return client.searchItems(searchTerm);
     }
   } catch (error) {
     Logger.log('Search error: ' + error.message);
+    Logger.log('Search type: ' + searchType);
+    Logger.log('Search term: ' + searchTerm);
     throw error;
   }
 }
