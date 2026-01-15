@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      padding: 20px;
+      margin: 0;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 400px;
+      background: white;
+      padding: 24px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h2 {
+      margin-top: 0;
+      color: #1a73e8;
+      font-size: 24px;
+      font-weight: 400;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      color: #5f6368;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      font-size: 14px;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+    input:focus {
+      outline: none;
+      border-color: #1a73e8;
+    }
+    .button-group {
+      margin-top: 24px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    button {
+      padding: 10px 24px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .btn-primary {
+      background-color: #1a73e8;
+      color: white;
+    }
+    .btn-primary:hover {
+      background-color: #1557b0;
+    }
+    .btn-primary:disabled {
+      background-color: #dadce0;
+      cursor: not-allowed;
+    }
+    .btn-secondary {
+      background-color: white;
+      color: #5f6368;
+      border: 1px solid #dadce0;
+    }
+    .btn-secondary:hover {
+      background-color: #f8f9fa;
+    }
+    .message {
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      display: none;
+    }
+    .message.success {
+      background-color: #e6f4ea;
+      color: #137333;
+      border: 1px solid #c6e1c6;
+    }
+    .message.error {
+      background-color: #fce8e6;
+      color: #c5221f;
+      border: 1px solid #f4c7c3;
+    }
+    .help-text {
+      font-size: 12px;
+      color: #5f6368;
+      margin-top: 4px;
+    }
+    .loading {
+      display: none;
+      text-align: center;
+      color: #5f6368;
+    }
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #1a73e8;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+      margin: 12px auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Login to Arena PLM</h2>
+
+    <div id="message" class="message"></div>
+
+    <div id="loginForm">
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" placeholder="your.email@company.com" required>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="Enter your password" required>
+      </div>
+
+      <div class="form-group">
+        <label for="workspaceId">Workspace ID</label>
+        <input type="text" id="workspaceId" placeholder="Enter workspace ID (numeric)" required>
+        <div class="help-text">Your Arena workspace identifier (found in Arena settings)</div>
+      </div>
+
+      <div class="button-group">
+        <button type="button" class="btn-secondary" onclick="closeDialog()">Cancel</button>
+        <button type="button" class="btn-primary" id="loginBtn" onclick="handleLogin()">Login</button>
+      </div>
+    </div>
+
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <div>Logging in to Arena...</div>
+    </div>
+  </div>
+
+  <script>
+    function handleLogin() {
+      var email = document.getElementById('email').value.trim();
+      var password = document.getElementById('password').value;
+      var workspaceId = document.getElementById('workspaceId').value.trim();
+
+      // Validate inputs
+      if (!email || !password || !workspaceId) {
+        showMessage('Please fill in all fields', 'error');
+        return;
+      }
+
+      // Validate email format
+      if (!isValidEmail(email)) {
+        showMessage('Please enter a valid email address', 'error');
+        return;
+      }
+
+      // Disable form and show loading
+      setLoading(true);
+
+      // Call server-side login function
+      google.script.run
+        .withSuccessHandler(onLoginSuccess)
+        .withFailureHandler(onLoginError)
+        .loginToArena(email, password, workspaceId);
+    }
+
+    function onLoginSuccess(result) {
+      setLoading(false);
+
+      if (result.success) {
+        showMessage(result.message, 'success');
+        setTimeout(function() {
+          google.script.host.close();
+        }, 1500);
+      } else {
+        showMessage(result.message, 'error');
+      }
+    }
+
+    function onLoginError(error) {
+      setLoading(false);
+      showMessage('Error: ' + error.message, 'error');
+    }
+
+    function showMessage(text, type) {
+      var messageEl = document.getElementById('message');
+      messageEl.textContent = text;
+      messageEl.className = 'message ' + type;
+      messageEl.style.display = 'block';
+    }
+
+    function setLoading(isLoading) {
+      document.getElementById('loginForm').style.display = isLoading ? 'none' : 'block';
+      document.getElementById('loading').style.display = isLoading ? 'block' : 'none';
+      document.getElementById('loginBtn').disabled = isLoading;
+    }
+
+    function isValidEmail(email) {
+      var re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return re.test(email);
+    }
+
+    function closeDialog() {
+      google.script.host.close();
+    }
+
+    // Handle Enter key
+    document.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        handleLogin();
+      }
+    });
+  </script>
+</body>
+</html>

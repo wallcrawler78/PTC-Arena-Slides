@@ -1,0 +1,300 @@
+/**
+ * Arena API Integration Module
+ *
+ * Handles all communication with Arena PLM REST API
+ * Based on lessons learned from Arena Sheets DataCenter project
+ */
+
+var BASE_URL = 'https://api.arenasolutions.com/v1';
+
+/**
+ * Arena API Client Class
+ */
+var ArenaAPIClient = (function() {
+
+  function ArenaAPIClient() {
+    this.sessionId = getArenaSessionId();
+  }
+
+  /**
+   * Makes an authenticated request to Arena API
+   * @param {string} endpoint - API endpoint (e.g., '/items')
+   * @param {Object} options - Request options
+   * @return {Object} Parsed JSON response
+   */
+  ArenaAPIClient.prototype.makeRequest = function(endpoint, options) {
+    options = options || {};
+    var url = BASE_URL + endpoint;
+
+    var headers = {
+      'Content-Type': 'application/json',
+      'arena_session_id': this.sessionId
+    };
+
+    var fetchOptions = {
+      method: options.method || 'GET',
+      headers: headers,
+      muteHttpExceptions: true
+    };
+
+    if (options.payload) {
+      fetchOptions.payload = JSON.stringify(options.payload);
+    }
+
+    var response = UrlFetchApp.fetch(url, fetchOptions);
+    var responseCode = response.getResponseCode();
+
+    // Handle session expiration (401)
+    if (responseCode === 401) {
+      Logger.log('Session expired, attempting re-login...');
+      clearArenaSession();
+      this.sessionId = getValidArenaSessionId();
+
+      if (!this.sessionId) {
+        throw new Error('Session expired. Please log in again.');
+      }
+
+      // Retry request with new session
+      headers['arena_session_id'] = this.sessionId;
+      fetchOptions.headers = headers;
+      response = UrlFetchApp.fetch(url, fetchOptions);
+      responseCode = response.getResponseCode();
+    }
+
+    // Handle errors
+    if (responseCode === 400) {
+      var error = JSON.parse(response.getContentText());
+      throw new Error('Validation error: ' + (error.errors ? error.errors[0].message : error.message));
+    }
+
+    if (responseCode === 409) {
+      throw new Error('Conflict: Resource already exists');
+    }
+
+    if (responseCode !== 200 && responseCode !== 201) {
+      throw new Error('API error ' + responseCode + ': ' + response.getContentText());
+    }
+
+    return JSON.parse(response.getContentText());
+  };
+
+  /**
+   * Gets all items from Arena with pagination
+   * @param {Object} filters - Optional filters
+   * @return {Array} Array of items
+   */
+  ArenaAPIClient.prototype.getAllItems = function(filters) {
+    var allItems = [];
+    var offset = 0;
+    var limit = 400; // Arena's max per request
+
+    while (true) {
+      var endpoint = '/items?limit=' + limit + '&offset=' + offset + '&responseview=full';
+      var response = this.makeRequest(endpoint, { method: 'GET' });
+
+      // Handle both response formats (results vs Results)
+      var items = response.results || response.Results || [];
+      allItems = allItems.concat(items);
+
+      if (items.length < limit) {
+        break; // No more results
+      }
+
+      offset += limit;
+    }
+
+    return allItems;
+  };
+
+  /**
+   * Gets a single item by GUID
+   * @param {string} guid - Item GUID
+   * @return {Object} Item object
+   */
+  ArenaAPIClient.prototype.getItem = function(guid) {
+    var endpoint = '/items/' + guid + '?responseview=full';
+    return this.makeRequest(endpoint, { method: 'GET' });
+  };
+
+  /**
+   * Searches for items by number
+   * @param {string} itemNumber - Item number to search for
+   * @return {Object|null} Item object or null if not found
+   */
+  ArenaAPIClient.prototype.findItemByNumber = function(itemNumber) {
+    var allItems = this.getAllItems();
+
+    for (var i = 0; i < allItems.length; i++) {
+      var item = allItems[i];
+      var number = item.number || item.Number;
+      if (number === itemNumber) {
+        return item;
+      }
+    }
+
+    return null;
+  };
+
+  /**
+   * Searches items by name or description
+   * @param {string} searchTerm - Search term
+   * @return {Array} Array of matching items
+   */
+  ArenaAPIClient.prototype.searchItems = function(searchTerm) {
+    var allItems = this.getAllItems();
+    var results = [];
+    var lowerSearchTerm = searchTerm.toLowerCase();
+
+    for (var i = 0; i < allItems.length; i++) {
+      var item = allItems[i];
+      var name = (item.name || item.Name || '').toLowerCase();
+      var number = (item.number || item.Number || '').toLowerCase();
+      var description = (item.description || item.Description || '').toLowerCase();
+
+      if (name.indexOf(lowerSearchTerm) !== -1 ||
+          number.indexOf(lowerSearchTerm) !== -1 ||
+          description.indexOf(lowerSearchTerm) !== -1) {
+        results.push(item);
+      }
+    }
+
+    return results;
+  };
+
+  /**
+   * Gets changes (ECOs) from Arena
+   * @return {Array} Array of changes
+   */
+  ArenaAPIClient.prototype.getChanges = function() {
+    var endpoint = '/changes?limit=100';
+    var response = this.makeRequest(endpoint, { method: 'GET' });
+    return response.results || response.Results || [];
+  };
+
+  /**
+   * Gets quality records from Arena
+   * @return {Array} Array of quality records
+   */
+  ArenaAPIClient.prototype.getQualityRecords = function() {
+    var endpoint = '/quality?limit=100';
+    var response = this.makeRequest(endpoint, { method: 'GET' });
+    return response.results || response.Results || [];
+  };
+
+  return ArenaAPIClient;
+})();
+
+/**
+ * Login to Arena
+ * @param {string} email - User email
+ * @param {string} password - User password
+ * @param {string} workspaceId - Workspace ID
+ * @return {Object} Result object
+ */
+function loginToArena(email, password, workspaceId) {
+  try {
+    var loginUrl = 'https://api.arenasolutions.com/v1/login';
+
+    var payload = {
+      email: email,
+      password: password,
+      workspaceId: workspaceId
+    };
+
+    var options = {
+      method: 'POST',
+      contentType: 'application/json',
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+
+    var response = UrlFetchApp.fetch(loginUrl, options);
+    var responseCode = response.getResponseCode();
+
+    if (responseCode !== 200) {
+      var error = JSON.parse(response.getContentText());
+      return {
+        success: false,
+        message: 'Login failed: ' + (error.message || 'Invalid credentials')
+      };
+    }
+
+    var result = JSON.parse(response.getContentText());
+    var sessionId = result.arenaSessionId || result.ArenaSessionId;
+
+    // Store credentials
+    saveArenaCredentials(email, sessionId, workspaceId);
+
+    return {
+      success: true,
+      message: 'Successfully logged in to Arena'
+    };
+
+  } catch (error) {
+    Logger.log('Login error: ' + error.message);
+    return {
+      success: false,
+      message: 'Error: ' + error.message
+    };
+  }
+}
+
+/**
+ * Gets detailed Arena item information
+ * @param {string} guid - Item GUID
+ * @return {Object} Detailed item information
+ */
+function getArenaItemDetails(guid) {
+  var client = new ArenaAPIClient();
+  return client.getItem(guid);
+}
+
+/**
+ * Searches Arena for items
+ * @param {string} searchTerm - Search term
+ * @param {string} searchType - Type of search (items, changes, quality)
+ * @return {Array} Search results
+ */
+function searchArena(searchTerm, searchType) {
+  try {
+    var client = new ArenaAPIClient();
+
+    switch (searchType) {
+      case 'items':
+        return client.searchItems(searchTerm);
+      case 'changes':
+        var changes = client.getChanges();
+        return filterBySearchTerm(changes, searchTerm);
+      case 'quality':
+        var quality = client.getQualityRecords();
+        return filterBySearchTerm(quality, searchTerm);
+      default:
+        return client.searchItems(searchTerm);
+    }
+  } catch (error) {
+    Logger.log('Search error: ' + error.message);
+    throw error;
+  }
+}
+
+/**
+ * Filters results by search term
+ * @param {Array} items - Items to filter
+ * @param {string} searchTerm - Search term
+ * @return {Array} Filtered items
+ */
+function filterBySearchTerm(items, searchTerm) {
+  var results = [];
+  var lowerSearchTerm = searchTerm.toLowerCase();
+
+  for (var i = 0; i < items.length; i++) {
+    var item = items[i];
+    var itemStr = JSON.stringify(item).toLowerCase();
+
+    if (itemStr.indexOf(lowerSearchTerm) !== -1) {
+      results.push(item);
+    }
+  }
+
+  return results;
+}

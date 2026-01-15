@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      padding: 20px;
+      margin: 0;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 500px;
+      background: white;
+      padding: 24px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h2 {
+      margin-top: 0;
+      color: #1a73e8;
+      font-size: 24px;
+      font-weight: 400;
+    }
+    .section {
+      margin-bottom: 24px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    .section:last-child {
+      border-bottom: none;
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: 500;
+      color: #202124;
+      margin-bottom: 12px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      color: #5f6368;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: #1a73e8;
+    }
+    .help-text {
+      font-size: 12px;
+      color: #5f6368;
+      margin-top: 4px;
+    }
+    .info-box {
+      background-color: #e8f0fe;
+      border-left: 4px solid #1a73e8;
+      padding: 12px;
+      margin: 12px 0;
+      font-size: 13px;
+      color: #202124;
+    }
+    .info-box a {
+      color: #1a73e8;
+      text-decoration: none;
+    }
+    .info-box a:hover {
+      text-decoration: underline;
+    }
+    .status-indicator {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+      margin-left: 8px;
+    }
+    .status-connected {
+      background-color: #e6f4ea;
+      color: #137333;
+    }
+    .status-disconnected {
+      background-color: #fce8e6;
+      color: #c5221f;
+    }
+    .button-group {
+      margin-top: 24px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    button {
+      padding: 10px 24px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .btn-primary {
+      background-color: #1a73e8;
+      color: white;
+    }
+    .btn-primary:hover {
+      background-color: #1557b0;
+    }
+    .btn-secondary {
+      background-color: white;
+      color: #5f6368;
+      border: 1px solid #dadce0;
+    }
+    .btn-secondary:hover {
+      background-color: #f8f9fa;
+    }
+    .message {
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      display: none;
+    }
+    .message.success {
+      background-color: #e6f4ea;
+      color: #137333;
+    }
+    .message.error {
+      background-color: #fce8e6;
+      color: #c5221f;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Settings</h2>
+
+    <div id="message" class="message"></div>
+
+    <!-- Arena Connection Status -->
+    <div class="section">
+      <div class="section-title">
+        Arena Connection
+        <span id="arenaStatus" class="status-indicator status-disconnected">Not Connected</span>
+      </div>
+      <div id="arenaInfo" style="font-size: 14px; color: #5f6368;"></div>
+    </div>
+
+    <!-- Gemini API Configuration -->
+    <div class="section">
+      <div class="section-title">Gemini AI Configuration</div>
+
+      <div class="info-box">
+        Get your free Gemini API key from <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a>
+      </div>
+
+      <div class="form-group">
+        <label for="geminiApiKey">Gemini API Key</label>
+        <input type="password" id="geminiApiKey" placeholder="Enter your Gemini API key">
+        <div class="help-text">Your API key is stored securely and never shared</div>
+      </div>
+
+      <div class="form-group">
+        <label for="aiDetailLevel">AI Detail Level</label>
+        <select id="aiDetailLevel">
+          <option value="brief">Brief (3-5 bullet points)</option>
+          <option value="medium" selected>Medium (5-7 bullet points)</option>
+          <option value="detailed">Detailed (7-10 bullet points)</option>
+        </select>
+        <div class="help-text">Controls how much detail AI includes in slide summaries</div>
+      </div>
+    </div>
+
+    <!-- Slide Preferences -->
+    <div class="section">
+      <div class="section-title">Slide Preferences</div>
+
+      <div class="form-group">
+        <label for="slideTemplate">Default Slide Template</label>
+        <select id="slideTemplate">
+          <option value="title_and_body" selected>Title and Body</option>
+          <option value="title_only">Title Only</option>
+          <option value="section_header">Section Header</option>
+          <option value="two_columns">Two Columns</option>
+        </select>
+        <div class="help-text">Layout used when generating new slides</div>
+      </div>
+    </div>
+
+    <div class="button-group">
+      <button type="button" class="btn-secondary" onclick="closeDialog()">Cancel</button>
+      <button type="button" class="btn-primary" onclick="saveSettings()">Save Settings</button>
+    </div>
+  </div>
+
+  <script>
+    // Load current settings on open
+    window.onload = function() {
+      loadSettings();
+    };
+
+    function loadSettings() {
+      google.script.run
+        .withSuccessHandler(function(settings) {
+          document.getElementById('geminiApiKey').value = settings.geminiApiKey || '';
+          document.getElementById('aiDetailLevel').value = settings.aiDetailLevel || 'medium';
+          document.getElementById('slideTemplate').value = settings.slideTemplate || 'title_and_body';
+        })
+        .getAppSettings();
+
+      // Load Arena status
+      google.script.run
+        .withSuccessHandler(function(status) {
+          updateArenaStatus(status);
+        })
+        .getLoginStatus();
+    }
+
+    function updateArenaStatus(status) {
+      var statusEl = document.getElementById('arenaStatus');
+      var infoEl = document.getElementById('arenaInfo');
+
+      if (status.isLoggedIn) {
+        statusEl.className = 'status-indicator status-connected';
+        statusEl.textContent = 'Connected';
+        infoEl.innerHTML = 'Logged in as: <strong>' + status.email + '</strong><br>' +
+                          'Workspace ID: <strong>' + status.workspaceId + '</strong>';
+      } else {
+        statusEl.className = 'status-indicator status-disconnected';
+        statusEl.textContent = 'Not Connected';
+        infoEl.textContent = 'Please login using Arena Slides > Login to Arena';
+      }
+    }
+
+    function saveSettings() {
+      var settings = {
+        geminiApiKey: document.getElementById('geminiApiKey').value.trim(),
+        aiDetailLevel: document.getElementById('aiDetailLevel').value,
+        slideTemplate: document.getElementById('slideTemplate').value
+      };
+
+      google.script.run
+        .withSuccessHandler(function() {
+          showMessage('Settings saved successfully!', 'success');
+          setTimeout(function() {
+            google.script.host.close();
+          }, 1500);
+        })
+        .withFailureHandler(function(error) {
+          showMessage('Error saving settings: ' + error.message, 'error');
+        })
+        .saveAppSettings(settings);
+    }
+
+    function showMessage(text, type) {
+      var messageEl = document.getElementById('message');
+      messageEl.textContent = text;
+      messageEl.className = 'message ' + type;
+      messageEl.style.display = 'block';
+    }
+
+    function closeDialog() {
+      google.script.host.close();
+    }
+  </script>
+</body>
+</html>

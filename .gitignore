@@ -1,0 +1,28 @@
+# clasp
+.clasprc.json
+.clasp.json
+
+# Node
+node_modules/
+package-lock.json
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Credentials (never commit!)
+credentials.json
+.env
+
+# Build artifacts
+dist/
+build/

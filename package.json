@@ -1,0 +1,37 @@
+{
+  "name": "ptc-arena-slides",
+  "version": "1.0.0",
+  "description": "Automatically create Google Slides presentations from Arena PLM content using AI-powered summarization",
+  "main": "src/Code.gs",
+  "scripts": {
+    "login": "clasp login",
+    "push": "clasp push",
+    "pull": "clasp pull",
+    "open": "clasp open",
+    "deploy": "clasp deploy",
+    "logs": "clasp logs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YOUR_USERNAME/PTC-Arena-Slides.git"
+  },
+  "keywords": [
+    "google-apps-script",
+    "google-slides",
+    "arena-plm",
+    "gemini-ai",
+    "automation",
+    "presentations",
+    "plm",
+    "ai"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/YOUR_USERNAME/PTC-Arena-Slides/issues"
+  },
+  "homepage": "https://github.com/YOUR_USERNAME/PTC-Arena-Slides#readme",
+  "devDependencies": {
+    "@google/clasp": "^2.4.2"
+  }
+}
