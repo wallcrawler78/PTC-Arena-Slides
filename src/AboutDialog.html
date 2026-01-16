@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+    }
+    .container {
+      background: white;
+      border-radius: 8px;
+      padding: 32px;
+      max-width: 450px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .logo {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    h1 {
+      margin: 0 0 8px 0;
+      color: #1a73e8;
+      font-size: 28px;
+      font-weight: 400;
+    }
+    .version {
+      color: #5f6368;
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+    .tagline {
+      color: #202124;
+      font-size: 16px;
+      line-height: 1.6;
+      margin: 0 0 24px 0;
+      padding: 0 16px;
+    }
+    .free-badge {
+      display: inline-block;
+      background: #34a853;
+      color: white;
+      padding: 8px 20px;
+      border-radius: 20px;
+      font-weight: 500;
+      font-size: 14px;
+      margin: 16px 0;
+    }
+    .features {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 24px 0;
+      text-align: left;
+    }
+    .features-title {
+      font-weight: 500;
+      color: #202124;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    .feature-item {
+      color: #5f6368;
+      font-size: 14px;
+      line-height: 1.6;
+      margin: 8px 0;
+      padding-left: 24px;
+      position: relative;
+    }
+    .feature-item:before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: #34a853;
+      font-weight: bold;
+    }
+    .creator {
+      margin: 24px 0;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 8px;
+      color: white;
+    }
+    .creator-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.9;
+      margin-bottom: 8px;
+    }
+    .creator-name {
+      font-size: 24px;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+    .creator-title {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    .btn-linkedin {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      background-color: #0077b5;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      margin: 16px 0;
+      transition: background-color 0.2s;
+    }
+    .btn-linkedin:hover {
+      background-color: #006399;
+    }
+    .linkedin-icon {
+      width: 20px;
+      height: 20px;
+    }
+    .footer {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid #e0e0e0;
+    }
+    .btn-close {
+      padding: 10px 32px;
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-close:hover {
+      background-color: #1557b0;
+    }
+    .built-with {
+      font-size: 12px;
+      color: #5f6368;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">📊</div>
+    <h1>Arena Slides</h1>
+    <div class="version">Version 1.1.0</div>
+
+    <div class="free-badge">✨ FREE TO USE ✨</div>
+
+    <p class="tagline">
+      Automatically create presentation slides from Arena PLM content using AI-powered summarization
+    </p>
+
+    <div class="features">
+      <div class="features-title">Key Features</div>
+      <div class="feature-item">Search Arena Items, Changes, Requests & Quality Records</div>
+      <div class="feature-item">AI-powered content summarization with Google Gemini</div>
+      <div class="feature-item">Automatic slide generation in Google Slides</div>
+      <div class="feature-item">Multi-search collections with save/load capability</div>
+      <div class="feature-item">Custom field selection and AI instructions</div>
+      <div class="feature-item">Automatic image insertion from Arena attachments</div>
+    </div>
+
+    <div class="creator">
+      <div class="creator-label">Created By</div>
+      <div class="creator-name">Dan Bacon</div>
+      <div class="creator-title">PLM Solutions Architect</div>
+    </div>
+
+    <a href="https://www.linkedin.com/in/dan-bacon-09129a5a/" target="_blank" class="btn-linkedin">
+      <svg class="linkedin-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white">
+        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+      </svg>
+      Connect on LinkedIn
+    </a>
+
+    <div class="built-with">
+      Built with ❤️ using Google Apps Script & Claude Code
+    </div>
+
+    <div class="footer">
+      <button class="btn-close" onclick="google.script.host.close()">Close</button>
+    </div>
+  </div>
+</body>
+</html>

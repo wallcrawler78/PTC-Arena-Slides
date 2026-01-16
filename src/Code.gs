@@ -145,6 +145,7 @@ function onOpen() {
     .addItem('Login to Arena', 'showLoginDialog')
     .addItem('Logout', 'clearArenaCredentials')
     .addSeparator()
+    .addItem('Help', 'showHelpDialog')
     .addItem('About', 'showAboutDialog')
     .addToUi();
 }
@@ -190,21 +191,23 @@ function showLoginDialog() {
 }
 
 /**
+ * Shows the help dialog
+ */
+function showHelpDialog() {
+  var html = HtmlService.createHtmlOutputFromFile('HelpDialog')
+    .setWidth(700)
+    .setHeight(600);
+  SlidesApp.getUi().showModalDialog(html, 'Arena Slides - Help');
+}
+
+/**
  * Shows the about dialog
  */
 function showAboutDialog() {
-  var ui = SlidesApp.getUi();
-  ui.alert(
-    'About Arena Slides',
-    'Arena Slides v1.0.0\n\n' +
-    'Automatically create presentation slides from Arena PLM content using AI.\n\n' +
-    'Features:\n' +
-    '• Search Arena for Items, Changes, or Quality Records\n' +
-    '• AI-powered content summarization with Gemini\n' +
-    '• Automatic slide generation in Google Slides\n\n' +
-    'Created with Claude Code',
-    ui.ButtonSet.OK
-  );
+  var html = HtmlService.createHtmlOutputFromFile('AboutDialog')
+    .setWidth(500)
+    .setHeight(350);
+  SlidesApp.getUi().showModalDialog(html, 'About Arena Slides');
 }
 
 /**

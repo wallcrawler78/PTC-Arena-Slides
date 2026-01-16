@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      background: white;
+      border-radius: 8px;
+      padding: 24px;
+      max-width: 650px;
+      margin: 0 auto;
+    }
+    h1 {
+      margin: 0 0 16px 0;
+      color: #1a73e8;
+      font-size: 24px;
+      font-weight: 400;
+      border-bottom: 2px solid #1a73e8;
+      padding-bottom: 12px;
+    }
+    h2 {
+      color: #202124;
+      font-size: 18px;
+      font-weight: 500;
+      margin: 24px 0 12px 0;
+    }
+    h3 {
+      color: #5f6368;
+      font-size: 15px;
+      font-weight: 500;
+      margin: 16px 0 8px 0;
+    }
+    p {
+      color: #202124;
+      line-height: 1.6;
+      margin: 0 0 12px 0;
+    }
+    .menu-item {
+      background: #f8f9fa;
+      border-left: 4px solid #1a73e8;
+      padding: 12px 16px;
+      margin: 12px 0;
+      border-radius: 4px;
+    }
+    .menu-item-title {
+      font-weight: 500;
+      color: #1a73e8;
+      margin-bottom: 6px;
+    }
+    .menu-item-desc {
+      color: #5f6368;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .workflow {
+      background: #e8f0fe;
+      border-radius: 8px;
+      padding: 16px;
+      margin: 16px 0;
+    }
+    .workflow-step {
+      display: flex;
+      align-items: flex-start;
+      margin: 12px 0;
+    }
+    .workflow-number {
+      background: #1a73e8;
+      color: white;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 500;
+      font-size: 14px;
+      flex-shrink: 0;
+      margin-right: 12px;
+    }
+    .workflow-text {
+      flex: 1;
+      color: #202124;
+      font-size: 14px;
+      line-height: 1.5;
+      padding-top: 4px;
+    }
+    .tip {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 12px 16px;
+      margin: 16px 0;
+      border-radius: 4px;
+    }
+    .tip-title {
+      font-weight: 500;
+      color: #856404;
+      margin-bottom: 6px;
+    }
+    .tip-text {
+      color: #856404;
+      font-size: 14px;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid #e0e0e0;
+    }
+    .btn-close {
+      padding: 10px 24px;
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-close:hover {
+      background-color: #1557b0;
+    }
+    ul {
+      margin: 8px 0;
+      padding-left: 20px;
+    }
+    li {
+      color: #5f6368;
+      line-height: 1.6;
+      margin: 4px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📚 Arena Slides Help</h1>
+
+    <h2>🚀 Getting Started</h2>
+    <div class="workflow">
+      <div class="workflow-step">
+        <div class="workflow-number">1</div>
+        <div class="workflow-text">
+          <strong>Login to Arena</strong><br>
+          Use <em>Arena Slides → Login to Arena</em> to connect your Arena PLM account
+        </div>
+      </div>
+      <div class="workflow-step">
+        <div class="workflow-number">2</div>
+        <div class="workflow-text">
+          <strong>Configure Settings</strong><br>
+          Add your Gemini API key and customize field selections in <em>Settings</em>
+        </div>
+      </div>
+      <div class="workflow-step">
+        <div class="workflow-number">3</div>
+        <div class="workflow-text">
+          <strong>Search & Generate</strong><br>
+          Search for Arena items and generate AI-powered slides with one click
+        </div>
+      </div>
+    </div>
+
+    <h2>📋 Menu Items</h2>
+
+    <div class="menu-item">
+      <div class="menu-item-title">🔍 Search Arena Items</div>
+      <div class="menu-item-desc">
+        Search your Arena workspace for Items, Changes (ECOs), Requests (ECRs), or Quality Records. You can run multiple searches and add items to a collection before generating slides.
+      </div>
+    </div>
+
+    <div class="menu-item">
+      <div class="menu-item-title">📚 Manage Collections</div>
+      <div class="menu-item-desc">
+        View, load, rename, and delete your saved collections. Collections let you save groups of items for reuse across multiple presentations.
+      </div>
+    </div>
+
+    <div class="menu-item">
+      <div class="menu-item-title">🔄 Refresh Slides</div>
+      <div class="menu-item-desc">
+        Update existing Arena slides with the latest data from Arena. This re-fetches item details and regenerates AI summaries while preserving your slide layout.
+      </div>
+    </div>
+
+    <div class="menu-item">
+      <div class="menu-item-title">⚙️ Settings</div>
+      <div class="menu-item-desc">
+        <strong>General Tab:</strong> Configure your Gemini API key, AI detail level (Brief/Medium/Detailed), and slide template preference.
+        <br><br>
+        <strong>Schema Tab:</strong> Choose which Arena fields to include in AI prompts and provide custom instructions for how Gemini should analyze each object type.
+      </div>
+    </div>
+
+    <div class="menu-item">
+      <div class="menu-item-title">🔐 Login to Arena</div>
+      <div class="menu-item-desc">
+        Connect to your Arena PLM workspace. Enter your Arena email, password, and workspace ID. Use "Remember Me" to save credentials for quick login.
+      </div>
+    </div>
+
+    <div class="menu-item">
+      <div class="menu-item-title">🚪 Logout</div>
+      <div class="menu-item-desc">
+        Disconnect from Arena and clear your stored session. Your saved collections and settings are preserved.
+      </div>
+    </div>
+
+    <h2>💡 How to Use</h2>
+
+    <h3>Basic Workflow</h3>
+    <p>
+      1. <strong>Login</strong> to Arena with your credentials<br>
+      2. <strong>Search</strong> for items you want to present<br>
+      3. <strong>Select</strong> items from search results<br>
+      4. <strong>Generate</strong> slides by clicking "Generate from Selection"<br>
+      5. <strong>Describe</strong> your presentation intent (e.g., "Executive summary for Q4 review")<br>
+      6. <strong>Review</strong> the AI-generated slides in your presentation
+    </p>
+
+    <h3>Advanced: Collections</h3>
+    <p>
+      <strong>Collections</strong> let you combine items from multiple searches:
+    </p>
+    <ul>
+      <li>Search for ECOs related to a project</li>
+      <li>Click "Add to Collection" to save them</li>
+      <li>Search for affected Items and add to the same collection</li>
+      <li>Click "💾 Save" to name and store your collection</li>
+      <li>Generate slides from the entire collection</li>
+      <li>Load saved collections anytime from "Manage Collections"</li>
+    </ul>
+
+    <h3>Schema Configuration</h3>
+    <p>
+      Use <strong>Settings → Schema</strong> to optimize AI performance:
+    </p>
+    <ul>
+      <li>Deselect irrelevant fields to reduce token usage</li>
+      <li>Click "🔄 Refresh Fields" after adding custom fields in Arena</li>
+      <li>Provide custom instructions to guide how Gemini analyzes data</li>
+      <li>Different settings for Items, Changes, Requests, and Quality</li>
+    </ul>
+
+    <div class="tip">
+      <div class="tip-title">💡 Pro Tips</div>
+      <div class="tip-text">
+        • Use <strong>Refresh Slides</strong> to update presentations with latest Arena data<br>
+        • Save time by creating reusable collections for recurring presentations<br>
+        • Adjust AI detail level based on your audience (Brief for executives, Detailed for technical reviews)<br>
+        • Images from Arena items are automatically included in slides
+      </div>
+    </div>
+
+    <div class="footer">
+      <button class="btn-close" onclick="google.script.host.close()">Close</button>
+    </div>
+  </div>
+</body>
+</html>
