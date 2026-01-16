@@ -4,7 +4,8 @@
  * Handles AI-powered content summarization using Google's Gemini API
  */
 
-var GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+// Updated to use Gemini 1.5 Flash (current model as of Jan 2026)
+var GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
 /**
  * Generates AI summary with user context and Arena PLM knowledge
@@ -375,32 +376,49 @@ function generateCollectionSynthesis(allItemsData, userPrompt) {
     var apiKey = getGeminiApiKey();
 
     if (!apiKey) {
-      Logger.log('No Gemini API key configured, using basic collection summary');
+      Logger.log('WARNING: No Gemini API key configured, using basic collection summary');
+      Logger.log('Please configure your API key in Arena Slides > Settings > General');
       return generateBasicCollectionSummary(allItemsData);
     }
 
+    Logger.log('API key found, proceeding with AI synthesis');
+
     // Get schema configuration
     var schema = getSchemaSettings();
+    Logger.log('Schema loaded: ' + JSON.stringify(Object.keys(schema)));
 
     // Get AI detail level preference
     var detailLevel = PropertiesService.getUserProperties().getProperty(AI_DETAIL_LEVEL_KEY) || 'medium';
+    Logger.log('Detail level: ' + detailLevel);
 
     // Build comprehensive collection context
+    Logger.log('Building collection context for ' + allItemsData.length + ' items...');
     var collectionContext = buildCollectionContext(allItemsData, schema);
+    Logger.log('Collection context built: ' + collectionContext.length + ' characters');
+    Logger.log('First 500 chars of context: ' + collectionContext.substring(0, 500));
 
     // Generate collection synthesis prompt
+    Logger.log('Generating synthesis prompt...');
     var prompt = generateCollectionSynthesisPrompt(collectionContext, userPrompt, detailLevel, allItemsData.length);
+    Logger.log('Prompt generated: ' + prompt.length + ' characters');
 
     Logger.log('Sending collection synthesis request to Gemini...');
 
     // Call Gemini API
     var synthesis = callGeminiAPI(prompt, apiKey);
+    Logger.log('Received synthesis from Gemini: ' + synthesis.length + ' characters');
+    Logger.log('First 500 chars of synthesis: ' + synthesis.substring(0, 500));
 
     // Parse synthesis response
-    return parseCollectionSynthesisResponse(synthesis, allItemsData);
+    Logger.log('Parsing synthesis response...');
+    var result = parseCollectionSynthesisResponse(synthesis, allItemsData);
+    Logger.log('Parsed ' + result.slides.length + ' slide(s) from synthesis');
+
+    return result;
 
   } catch (error) {
-    Logger.log('Collection synthesis error: ' + error.message);
+    Logger.log('ERROR in collection synthesis: ' + error.message);
+    Logger.log('Error stack: ' + error.stack);
     Logger.log('Falling back to basic collection summary');
     return generateBasicCollectionSummary(allItemsData);
   }
