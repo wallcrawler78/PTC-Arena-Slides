@@ -4,8 +4,8 @@
  * Handles AI-powered content summarization using Google's Gemini API
  */
 
-// Updated to use Gemini 1.5 Flash (current model as of Jan 2026)
-var GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+// Use v1beta API with Gemini 2.0 Flash Experimental (current as of Jan 2026)
+var GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
 
 /**
  * Generates AI summary with user context and Arena PLM knowledge
