@@ -17,55 +17,54 @@
     }
     .header {
       background: white;
-      padding: 20px;
+      padding: 16px 20px;
       border-bottom: 1px solid #e0e0e0;
     }
-    h2 {
-      margin: 0 0 16px 0;
-      color: #1a73e8;
-      font-size: 24px;
-      font-weight: 400;
-    }
-    .collection-banner {
+    .collection-status-bar {
       background: #e8f0fe;
-      border: 1px solid #1a73e8;
-      border-radius: 4px;
-      padding: 12px;
-      margin-bottom: 16px;
+      border-left: 4px solid #1a73e8;
+      padding: 8px 12px;
+      margin-bottom: 12px;
       display: none;
-    }
-    .collection-banner.active {
-      display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
+      border-radius: 4px;
+      font-size: 13px;
     }
-    .collection-info {
+    .collection-status-bar.active {
+      display: flex;
+    }
+    .collection-status-left {
       display: flex;
       align-items: center;
       gap: 8px;
+      color: #202124;
     }
-    .collection-count {
+    .collection-count-badge {
       background: #1a73e8;
       color: white;
-      padding: 4px 12px;
-      border-radius: 12px;
+      padding: 2px 10px;
+      border-radius: 10px;
       font-weight: 500;
-      font-size: 14px;
+      font-size: 12px;
     }
-    .collection-text {
-      color: #202124;
-      font-size: 14px;
+    .collection-actions {
+      display: flex;
+      gap: 6px;
     }
-    .btn-clear-collection {
-      padding: 6px 16px;
+    .btn-icon {
+      padding: 6px 12px;
       background: white;
       color: #1a73e8;
       border: 1px solid #1a73e8;
       border-radius: 4px;
-      font-size: 13px;
+      font-size: 12px;
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
-    .btn-clear-collection:hover {
+    .btn-icon:hover {
       background: #f8f9fa;
     }
     .search-controls {
@@ -194,14 +193,14 @@
     }
     .footer {
       background: white;
-      padding: 16px 20px;
+      padding: 12px 20px;
       border-top: 1px solid #e0e0e0;
     }
     .footer-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
     .footer-row:last-child {
       margin-bottom: 0;
@@ -263,7 +262,7 @@
     }
     .empty-state {
       text-align: center;
-      padding: 40px;
+      padding: 24px;
       color: #5f6368;
     }
     .tip-compact {
@@ -278,8 +277,8 @@
     .collection-preview {
       background: white;
       border-radius: 8px;
-      padding: 16px;
-      margin: 12px 0;
+      padding: 12px;
+      margin: 8px 0;
     }
     .collection-preview-title {
       font-weight: 500;
@@ -290,7 +289,7 @@
     .collection-item-preview {
       display: flex;
       align-items: center;
-      padding: 8px;
+      padding: 6px 8px;
       border-bottom: 1px solid #f0f0f0;
       font-size: 13px;
     }
@@ -311,7 +310,7 @@
     }
     .loading {
       text-align: center;
-      padding: 40px;
+      padding: 24px;
       color: #5f6368;
     }
     .spinner {
@@ -450,21 +449,27 @@
 </head>
 <body>
   <div class="header">
-    <h2>Search Arena</h2>
-
-    <!-- Collection Banner -->
-    <div id="collectionBanner" class="collection-banner">
-      <div class="collection-info">
-        <span class="collection-count" id="collectionCount">0</span>
-        <span class="collection-text">items in collection (from multiple searches)</span>
+    <!-- Compact Collection Status Bar -->
+    <div id="collectionStatusBar" class="collection-status-bar">
+      <div class="collection-status-left">
+        <span>📦 Collection:</span>
+        <span class="collection-count-badge" id="collectionCountBadge">0</span>
+        <span style="color: #5f6368; font-size: 12px;">items</span>
       </div>
-      <div style="display: flex; gap: 8px;">
-        <button class="btn-clear-collection" onclick="showCollectionHistory()">📚 Load Saved</button>
-        <button class="btn-clear-collection" onclick="saveCurrentCollection()">💾 Save</button>
-        <button class="btn-clear-collection" onclick="clearCollection()">Clear</button>
+      <div class="collection-actions">
+        <button class="btn-icon" onclick="showCollectionHistory()" title="Load saved collection">
+          📚 Saved
+        </button>
+        <button class="btn-icon" onclick="saveCurrentCollection()" title="Save current collection">
+          💾
+        </button>
+        <button class="btn-icon" onclick="clearCollection()" title="Clear collection">
+          ✕
+        </button>
       </div>
     </div>
 
+    <!-- Search Controls -->
     <div class="search-controls">
       <input type="text" id="searchInput" class="search-input" placeholder="Search by number, name, or description...">
       <select id="searchType">
@@ -476,8 +481,11 @@
       <button class="btn-search" id="searchBtn" onclick="performSearch()">Search</button>
     </div>
 
-    <div style="margin-top: 12px; text-align: right;">
-      <button class="btn-secondary" style="padding: 8px 16px; font-size: 13px;" onclick="showCollectionHistory()">📚 Load Saved Collection</button>
+    <!-- Load Saved Collections (shown when collection is empty) -->
+    <div id="loadSavedPrompt" style="margin-top: 12px; text-align: center; display: none;">
+      <button class="btn-icon" onclick="showCollectionHistory()" style="padding: 8px 16px;">
+        📚 Load Saved Collection
+      </button>
     </div>
   </div>
 
@@ -842,13 +850,23 @@
       // Update selection count
       document.getElementById('selectedCount').textContent = selectedItems.size + ' item' + (selectedItems.size !== 1 ? 's' : '') + ' selected';
 
-      // Update collection banner
-      var banner = document.getElementById('collectionBanner');
+      // Update collection status bar
+      var statusBar = document.getElementById('collectionStatusBar');
+      var loadSavedPrompt = document.getElementById('loadSavedPrompt');
+
       if (collection.length > 0) {
-        banner.classList.add('active');
-        document.getElementById('collectionCount').textContent = collection.length;
+        // Show compact status bar
+        statusBar.classList.add('active');
+        document.getElementById('collectionCountBadge').textContent = collection.length;
+        loadSavedPrompt.style.display = 'none';
       } else {
-        banner.classList.remove('active');
+        // Hide status bar, show load saved prompt when no search results
+        statusBar.classList.remove('active');
+        if (searchResults.length === 0) {
+          loadSavedPrompt.style.display = 'block';
+        } else {
+          loadSavedPrompt.style.display = 'none';
+        }
       }
 
       // Update collection preview
