@@ -659,7 +659,9 @@ function updateSlideContent(slide, item, summary, objectType) {
   var shapes = slide.getShapes();
   if (shapes.length > 0) {
     var titleShape = shapes[0];
-    titleShape.getText().setText(item.number + ': ' + item.name);
+    // ECRs and ECOs use 'title' instead of 'name'
+    var itemName = item.title || item.Title || item.name || item.Name || 'Untitled';
+    titleShape.getText().setText(item.number + ': ' + itemName);
   }
 
   // Update body
@@ -693,7 +695,9 @@ function createSlideWithContent(presentation, item, summary, objectType, images)
   // Set title
   var shapes = slide.getShapes();
   var titleShape = shapes[0];
-  titleShape.getText().setText(item.number + ': ' + item.name);
+  // ECRs and ECOs use 'title' instead of 'name'
+  var itemName = item.title || item.Title || item.name || item.Name || 'Untitled';
+  titleShape.getText().setText(item.number + ': ' + itemName);
 
   // Set body with AI summary
   var bodyShape = shapes[1];

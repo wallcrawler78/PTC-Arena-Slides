@@ -474,7 +474,8 @@
       div.onclick = function() { toggleSelection(index); };
 
       var number = item.number || item.Number || 'N/A';
-      var name = item.name || item.Name || 'Unnamed';
+      // ECRs and ECOs use 'title' instead of 'name'
+      var name = item.title || item.Title || item.name || item.Name || 'Unnamed';
       var description = item.description || item.Description || 'No description';
       var category = item.category ? (item.category.name || item.category.Name) : 'N/A';
       var lifecycle = item.lifecyclePhase ? (item.lifecyclePhase.name || item.lifecyclePhase.Name) : 'N/A';
