@@ -266,6 +266,49 @@
       padding: 40px;
       color: #5f6368;
     }
+    .tip-compact {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 10px 16px;
+      margin: 12px 0;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #856404;
+    }
+    .collection-preview {
+      background: white;
+      border-radius: 8px;
+      padding: 16px;
+      margin: 12px 0;
+    }
+    .collection-preview-title {
+      font-weight: 500;
+      color: #202124;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+    .collection-item-preview {
+      display: flex;
+      align-items: center;
+      padding: 8px;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 13px;
+    }
+    .collection-item-preview:last-child {
+      border-bottom: none;
+    }
+    .collection-item-preview-number {
+      color: #1a73e8;
+      font-weight: 500;
+      min-width: 120px;
+    }
+    .collection-item-preview-name {
+      color: #202124;
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     .loading {
       text-align: center;
       padding: 40px;
@@ -439,9 +482,23 @@
   </div>
 
   <div class="content">
+    <!-- Collection Preview -->
+    <div id="collectionPreview" style="display: none;">
+      <div class="collection-preview">
+        <div class="collection-preview-title">📦 Collection Contents</div>
+        <div id="collectionPreviewList">
+          <!-- Collection items will be listed here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Compact Tip -->
+    <div id="tipCompact" class="tip-compact" style="display: none;">
+      💡 <strong>Tip:</strong> Run multiple searches and add items to your collection before generating slides
+    </div>
+
     <div id="emptyState" class="empty-state">
-      Enter a search term and click Search to find Arena items.<br><br>
-      💡 <strong>Tip:</strong> You can run multiple searches and add items to your collection before generating slides!
+      Enter a search term and click Search to find Arena items.
     </div>
 
     <div id="loading" class="loading" style="display: none;">
@@ -794,10 +851,59 @@
         banner.classList.remove('active');
       }
 
+      // Update collection preview
+      var collectionPreview = document.getElementById('collectionPreview');
+      var tipCompact = document.getElementById('tipCompact');
+
+      if (collection.length > 0) {
+        // Show collection contents
+        collectionPreview.style.display = 'block';
+        updateCollectionPreview();
+
+        // Show tip if no search results
+        if (searchResults.length === 0) {
+          tipCompact.style.display = 'block';
+        } else {
+          tipCompact.style.display = 'none';
+        }
+      } else {
+        // Hide collection preview when empty
+        collectionPreview.style.display = 'none';
+
+        // Show tip if no search results
+        if (searchResults.length === 0) {
+          tipCompact.style.display = 'block';
+        } else {
+          tipCompact.style.display = 'none';
+        }
+      }
+
       // Update button states
       document.getElementById('addToCollectionBtn').disabled = selectedItems.size === 0;
       document.getElementById('generateFromSelectionBtn').disabled = selectedItems.size === 0;
       document.getElementById('generateFromCollectionBtn').disabled = collection.length === 0;
+    }
+
+    function updateCollectionPreview() {
+      var previewList = document.getElementById('collectionPreviewList');
+
+      if (collection.length === 0) {
+        previewList.innerHTML = '<div style="text-align: center; color: #5f6368; padding: 16px;">No items in collection</div>';
+        return;
+      }
+
+      var html = '';
+      collection.forEach(function(item) {
+        var number = item.number || item.Number || 'N/A';
+        var name = item.title || item.Title || item.name || item.Name || 'Untitled';
+
+        html += '<div class="collection-item-preview">' +
+                  '<div class="collection-item-preview-number">' + number + '</div>' +
+                  '<div class="collection-item-preview-name">' + name + '</div>' +
+                '</div>';
+      });
+
+      previewList.innerHTML = html;
     }
 
     function closeDialog() {
