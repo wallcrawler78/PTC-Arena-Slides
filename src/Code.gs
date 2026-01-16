@@ -338,7 +338,7 @@ function detectObjectTypeFromNumber(itemNumber) {
  */
 function createHolisticSlide(presentation, slideData, allItemsData, images) {
   // Get selected template
-  var templatePref = PropertiesService.getUserProperties().getProperty(SLIDE_TEMPLATE_KEY) || 'title-body';
+  var templatePref = PropertiesService.getUserProperties().getProperty('slide_template_preference') || 'title-body';
 
   var slide;
   if (templatePref === 'blank') {
@@ -354,13 +354,14 @@ function createHolisticSlide(presentation, slideData, allItemsData, images) {
   titleShape.getText().setText(slideData.title || 'Collection Overview');
 
   // Set body content
+  var bodyShape = null;
   if (shapes.length > 1) {
-    var bodyShape = shapes[1];
+    bodyShape = shapes[1];
     bodyShape.getText().setText(slideData.mainContent || '');
   }
 
   // Add images if available (first image only, positioned on right side)
-  if (images && images.length > 0) {
+  if (images && images.length > 0 && bodyShape) {
     try {
       var firstImage = images[0];
       // Find the item that has this image
@@ -373,17 +374,8 @@ function createHolisticSlide(presentation, slideData, allItemsData, images) {
       }
 
       if (itemWithImage) {
-        var imageUrl = getImageUrl(itemWithImage.guid, firstImage.guid);
-        if (imageUrl) {
-          var imageBlob = UrlFetchApp.fetch(imageUrl).getBlob();
-          var insertedImage = slide.insertImage(imageBlob);
-
-          // Position on right side
-          insertedImage.setLeft(500);
-          insertedImage.setTop(100);
-          insertedImage.setWidth(220);
-          insertedImage.setHeight(220);
-        }
+        // Use the existing addImageToSlide function
+        addImageToSlide(slide, itemWithImage.originalItem, firstImage, bodyShape);
       }
     } catch (imageError) {
       Logger.log('Could not insert image: ' + imageError.message);

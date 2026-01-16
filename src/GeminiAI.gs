@@ -477,73 +477,63 @@ function buildCollectionContext(allItemsData, schema) {
  * @return {string} Collection synthesis prompt
  */
 function generateCollectionSynthesisPrompt(collectionContext, userPrompt, detailLevel, totalItems) {
-  var prompt = `You are an AI assistant creating a cohesive presentation from a collection of Arena PLM items.
+  // Map detail level to description
+  var detailLevelMap = {
+    'brief': 'Concise executive summary',
+    'medium': 'Balanced technical overview',
+    'detailed': 'Comprehensive analysis'
+  };
+  var detailDescription = detailLevelMap[detailLevel] || detailLevelMap['medium'];
 
-CRITICAL INSTRUCTION: You must analyze this collection HOLISTICALLY. Do not treat each item independently.
-Instead, identify relationships, common themes, workflows, and narratives that connect these items together.
-
-ARENA PLM CONTEXT:
-- Arena is a Product Lifecycle Management system for managing product data, changes, and quality
-- Items: Parts, assemblies, documents (identified by item numbers like "900-00001")
-- Changes (ECOs): Engineering Change Orders that modify items (identified by "ECO-" prefix)
-- Requests (ECRs): Change requests proposing improvements (identified by "ECR-" prefix)
-- Quality Records: NCMRs, CAPAs, CARs documenting nonconformances and corrective actions
-
-COMMON PATTERNS TO IDENTIFY:
-1. CHANGE WORKFLOWS: ECRs → ECOs → affected Items (trace the change journey)
-2. QUALITY WORKFLOWS: Quality issue → ECO correction → updated Items
-3. PRODUCT FAMILIES: Related items (assemblies and components)
-4. LIFECYCLE STAGES: Items at different phases (design, production, obsolete)
-5. CROSS-FUNCTIONAL IMPACT: How changes affect multiple items or categories
-
-USER'S PRESENTATION GOAL:
-${userPrompt}
-
-${collectionContext}
-
-YOUR TASK:
-Analyze this collection and create a holistic presentation synthesis that:
-
-1. IDENTIFIES RELATIONSHIPS:
-   - Which ECOs affect which Items?
-   - Which Quality records led to which changes?
-   - Which items are related (assembly/component, product family)?
-   - What is the timeline or sequence of events?
-
-2. CREATES NARRATIVE:
-   - What is the overall story this collection tells?
-   - What common themes emerge?
-   - What is the business/technical context?
-
-3. STRUCTURES PRESENTATION:
-   - How should this be presented coherently?
-   - Should it be one overview slide or multiple thematic slides?
-   - What grouping makes the most sense?
-
-DETAIL LEVEL: ${{ brief: 'Concise executive summary', medium: 'Balanced technical overview', detailed: 'Comprehensive analysis' }[detailLevel]}
-
-FORMAT YOUR RESPONSE AS:
-
-SYNTHESIS:
-[Provide 2-3 paragraphs describing the holistic view of this collection, the relationships you identified, and the narrative]
-
-PRESENTATION STRUCTURE:
-[Describe how you recommend structuring the slides - e.g., "Single overview slide", "Three slides grouped by theme", etc.]
-
-SLIDES:
-[For each slide you recommend, provide:]
-
-SLIDE 1: [Title]
-MAIN CONTENT:
-[Bullet points for this slide]
-
-DETAILED NOTES:
-[Speaker notes for this slide]
-
-SLIDE 2: [Title]
-...continue for each recommended slide...
-
-Remember: Focus on the RELATIONSHIPS and HOLISTIC VIEW, not individual item summaries.`;
+  var prompt = 'You are an AI assistant creating a cohesive presentation from a collection of Arena PLM items.\n\n' +
+    'CRITICAL INSTRUCTION: You must analyze this collection HOLISTICALLY. Do not treat each item independently.\n' +
+    'Instead, identify relationships, common themes, workflows, and narratives that connect these items together.\n\n' +
+    'ARENA PLM CONTEXT:\n' +
+    '- Arena is a Product Lifecycle Management system for managing product data, changes, and quality\n' +
+    '- Items: Parts, assemblies, documents (identified by item numbers like "900-00001")\n' +
+    '- Changes (ECOs): Engineering Change Orders that modify items (identified by "ECO-" prefix)\n' +
+    '- Requests (ECRs): Change requests proposing improvements (identified by "ECR-" prefix)\n' +
+    '- Quality Records: NCMRs, CAPAs, CARs documenting nonconformances and corrective actions\n\n' +
+    'COMMON PATTERNS TO IDENTIFY:\n' +
+    '1. CHANGE WORKFLOWS: ECRs → ECOs → affected Items (trace the change journey)\n' +
+    '2. QUALITY WORKFLOWS: Quality issue → ECO correction → updated Items\n' +
+    '3. PRODUCT FAMILIES: Related items (assemblies and components)\n' +
+    '4. LIFECYCLE STAGES: Items at different phases (design, production, obsolete)\n' +
+    '5. CROSS-FUNCTIONAL IMPACT: How changes affect multiple items or categories\n\n' +
+    'USER\'S PRESENTATION GOAL:\n' +
+    userPrompt + '\n\n' +
+    collectionContext + '\n\n' +
+    'YOUR TASK:\n' +
+    'Analyze this collection and create a holistic presentation synthesis that:\n\n' +
+    '1. IDENTIFIES RELATIONSHIPS:\n' +
+    '   - Which ECOs affect which Items?\n' +
+    '   - Which Quality records led to which changes?\n' +
+    '   - Which items are related (assembly/component, product family)?\n' +
+    '   - What is the timeline or sequence of events?\n\n' +
+    '2. CREATES NARRATIVE:\n' +
+    '   - What is the overall story this collection tells?\n' +
+    '   - What common themes emerge?\n' +
+    '   - What is the business/technical context?\n\n' +
+    '3. STRUCTURES PRESENTATION:\n' +
+    '   - How should this be presented coherently?\n' +
+    '   - Should it be one overview slide or multiple thematic slides?\n' +
+    '   - What grouping makes the most sense?\n\n' +
+    'DETAIL LEVEL: ' + detailDescription + '\n\n' +
+    'FORMAT YOUR RESPONSE AS:\n\n' +
+    'SYNTHESIS:\n' +
+    '[Provide 2-3 paragraphs describing the holistic view of this collection, the relationships you identified, and the narrative]\n\n' +
+    'PRESENTATION STRUCTURE:\n' +
+    '[Describe how you recommend structuring the slides - e.g., "Single overview slide", "Three slides grouped by theme", etc.]\n\n' +
+    'SLIDES:\n' +
+    '[For each slide you recommend, provide:]\n\n' +
+    'SLIDE 1: [Title]\n' +
+    'MAIN CONTENT:\n' +
+    '[Bullet points for this slide]\n\n' +
+    'DETAILED NOTES:\n' +
+    '[Speaker notes for this slide]\n\n' +
+    'SLIDE 2: [Title]\n' +
+    '...continue for each recommended slide...\n\n' +
+    'Remember: Focus on the RELATIONSHIPS and HOLISTIC VIEW, not individual item summaries.';
 
   return prompt;
 }
