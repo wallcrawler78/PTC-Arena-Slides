@@ -243,6 +243,7 @@ function getSchemaSettings() {
       return {
         items: { fields: [], instructions: '' },
         changes: { fields: [], instructions: '' },
+        requests: { fields: [], instructions: '' },
         quality: { fields: [], instructions: '' }
       };
     }
@@ -253,6 +254,7 @@ function getSchemaSettings() {
     return {
       items: { fields: [], instructions: '' },
       changes: { fields: [], instructions: '' },
+      requests: { fields: [], instructions: '' },
       quality: { fields: [], instructions: '' }
     };
   }

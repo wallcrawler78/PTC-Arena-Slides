@@ -347,6 +347,22 @@
         </div>
       </div>
 
+      <!-- Requests Schema -->
+      <div class="object-type-section">
+        <div class="object-type-title">📝 Requests (ECRs)</div>
+
+        <button class="select-all-btn" onclick="selectAllFields('requests', true)">Select All</button>
+        <button class="select-all-btn" onclick="selectAllFields('requests', false)">Deselect All</button>
+
+        <div class="fields-grid" id="requestsFields"></div>
+
+        <div class="form-group">
+          <label for="requestsInstructions">Custom Instructions for Requests</label>
+          <textarea id="requestsInstructions" placeholder="e.g., Pay attention to status, priority, justification, and target date. Focus on the problem being addressed and business justification."></textarea>
+          <div class="help-text">Tell Gemini how to analyze and present request data</div>
+        </div>
+      </div>
+
       <!-- Quality Schema -->
       <div class="object-type-section">
         <div class="object-type-title">🔍 Quality Records</div>
@@ -378,6 +394,7 @@
     var availableFields = {
       items: [],
       changes: [],
+      requests: [],
       quality: []
     };
 
@@ -419,6 +436,7 @@
             // Store available fields
             availableFields.items = result.schema.items.fields || [];
             availableFields.changes = result.schema.changes.fields || [];
+            availableFields.requests = result.schema.requests.fields || [];
             availableFields.quality = result.schema.quality.fields || [];
 
             schemaLoaded = true;
@@ -457,6 +475,7 @@
             if (result.discoveredSchema) {
               availableFields.items = result.discoveredSchema.items.fields || [];
               availableFields.changes = result.discoveredSchema.changes.fields || [];
+              availableFields.requests = result.discoveredSchema.requests.fields || [];
               availableFields.quality = result.discoveredSchema.quality.fields || [];
             }
 
@@ -502,6 +521,7 @@
       // Clear existing checkboxes
       document.getElementById('itemsFields').innerHTML = '';
       document.getElementById('changesFields').innerHTML = '';
+      document.getElementById('requestsFields').innerHTML = '';
       document.getElementById('qualityFields').innerHTML = '';
 
       // Create checkboxes for each field type
@@ -510,6 +530,9 @@
       }
       if (availableFields.changes.length > 0) {
         createFieldCheckboxes('changes', 'changesFields');
+      }
+      if (availableFields.requests.length > 0) {
+        createFieldCheckboxes('requests', 'requestsFields');
       }
       if (availableFields.quality.length > 0) {
         createFieldCheckboxes('quality', 'qualityFields');
@@ -593,7 +616,7 @@
       if (!schema) return;
 
       // Load selected fields for each type
-      ['items', 'changes', 'quality'].forEach(function(type) {
+      ['items', 'changes', 'requests', 'quality'].forEach(function(type) {
         if (schema[type] && schema[type].fields) {
           // First uncheck all
           selectAllFields(type, false);
@@ -660,6 +683,10 @@
         changes: {
           fields: getSelectedFields('changes'),
           instructions: document.getElementById('changesInstructions').value.trim()
+        },
+        requests: {
+          fields: getSelectedFields('requests'),
+          instructions: document.getElementById('requestsInstructions').value.trim()
         },
         quality: {
           fields: getSelectedFields('quality'),

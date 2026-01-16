@@ -14,6 +14,7 @@ function discoverArenaSchema() {
     var schema = {
       items: { fields: [], lastUpdated: new Date().toISOString() },
       changes: { fields: [], lastUpdated: new Date().toISOString() },
+      requests: { fields: [], lastUpdated: new Date().toISOString() },
       quality: { fields: [], lastUpdated: new Date().toISOString() }
     };
 
@@ -43,6 +44,19 @@ function discoverArenaSchema() {
     } catch (error) {
       Logger.log('Error discovering Changes schema: ' + error.message);
       schema.changes.fields = getDefaultChangeFields();
+    }
+
+    // Discover Requests schema
+    try {
+      Logger.log('Discovering Requests schema...');
+      var requests = client.getRequests();
+      if (requests && requests.length > 0) {
+        schema.requests.fields = extractFieldNames(requests[0]);
+        Logger.log('Requests: Found ' + schema.requests.fields.length + ' fields');
+      }
+    } catch (error) {
+      Logger.log('Error discovering Requests schema: ' + error.message);
+      schema.requests.fields = getDefaultRequestFields();
     }
 
     // Discover Quality schema
@@ -141,6 +155,17 @@ function getDefaultChangeFields() {
 }
 
 /**
+ * Gets default request fields (fallback)
+ */
+function getDefaultRequestFields() {
+  return [
+    'number', 'title', 'description', 'status', 'category', 'priority',
+    'creator', 'submittedDateTime', 'targetDate', 'implementationDate',
+    'reason', 'justification', 'affectedItems'
+  ];
+}
+
+/**
  * Gets default quality fields (fallback)
  */
 function getDefaultQualityFields() {
@@ -162,10 +187,11 @@ function mergeSchemaWithPreferences(discoveredSchema, userPreferences) {
   var merged = {
     items: { fields: [], instructions: '' },
     changes: { fields: [], instructions: '' },
+    requests: { fields: [], instructions: '' },
     quality: { fields: [], instructions: '' }
   };
 
-  ['items', 'changes', 'quality'].forEach(function(type) {
+  ['items', 'changes', 'requests', 'quality'].forEach(function(type) {
     // Get discovered available fields
     var availableFields = discoveredSchema[type] ? discoveredSchema[type].fields : [];
 

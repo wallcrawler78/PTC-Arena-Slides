@@ -344,6 +344,8 @@ function generateSlidesWithPrompt(selectedItems, userPrompt) {
       var objectType = 'item'; // default
       if (itemNumber.indexOf('ECO-') === 0 || itemNumber.indexOf('ECO') === 0) {
         objectType = 'change';
+      } else if (itemNumber.indexOf('ECR-') === 0 || itemNumber.indexOf('ECR') === 0) {
+        objectType = 'request';
       } else if (itemNumber.indexOf('CAR-') === 0 || itemNumber.indexOf('NCMR-') === 0 || itemNumber.indexOf('NCR-') === 0) {
         objectType = 'quality';
       }
@@ -351,7 +353,7 @@ function generateSlidesWithPrompt(selectedItems, userPrompt) {
       Logger.log('Fetching details for ' + itemNumber + ' (type: ' + objectType + ', GUID: ' + itemGuid + ')');
       var itemDetails = getArenaItemDetails(itemGuid, objectType);
 
-      // Get images for items (not for ECOs or Quality records)
+      // Get images for items (not for ECOs, ECRs, or Quality records)
       var images = [];
       if (objectType === 'item') {
         images = getItemImages(itemGuid);
@@ -575,6 +577,8 @@ function detectLegacyArenaSlide(title) {
   // Detect type from number prefix
   if (number.indexOf('ECO-') === 0 || number.indexOf('ECO') === 0) {
     type = 'change';
+  } else if (number.indexOf('ECR-') === 0 || number.indexOf('ECR') === 0) {
+    type = 'request';
   } else if (number.indexOf('CAR-') === 0 || number.indexOf('NCMR-') === 0 || number.indexOf('NCR-') === 0) {
     type = 'quality';
   }

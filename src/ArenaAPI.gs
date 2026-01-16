@@ -273,6 +273,26 @@ var ArenaAPIClient = (function() {
     throw new Error('Quality records are not available in your Arena workspace. Please search for Items or Changes instead.');
   };
 
+  /**
+   * Gets requests (ECRs) from Arena
+   * @return {Array} Array of requests
+   */
+  ArenaAPIClient.prototype.getRequests = function() {
+    var endpoint = '/requests?limit=100';
+    var response = this.makeRequest(endpoint, { method: 'GET' });
+    return response.results || response.Results || [];
+  };
+
+  /**
+   * Gets a single request (ECR) by GUID
+   * @param {string} guid - Request GUID
+   * @return {Object} Request object
+   */
+  ArenaAPIClient.prototype.getRequest = function(guid) {
+    var endpoint = '/requests/' + guid + '?responseview=full';
+    return this.makeRequest(endpoint, { method: 'GET' });
+  };
+
   return ArenaAPIClient;
 })();
 
@@ -334,7 +354,7 @@ function loginToArena(email, password, workspaceId) {
 /**
  * Gets detailed Arena item information
  * @param {string} guid - Item GUID
- * @param {string} type - Optional type hint: 'item', 'change', 'quality'
+ * @param {string} type - Optional type hint: 'item', 'change', 'quality', 'request'
  * @return {Object} Detailed item information
  */
 function getArenaItemDetails(guid, type) {
@@ -345,6 +365,8 @@ function getArenaItemDetails(guid, type) {
     return client.getChange(guid);
   } else if (type === 'quality') {
     return client.getQualityRecord(guid);
+  } else if (type === 'request') {
+    return client.getRequest(guid);
   }
 
   // Default to item endpoint
@@ -354,7 +376,7 @@ function getArenaItemDetails(guid, type) {
 /**
  * Searches Arena for items
  * @param {string} searchTerm - Search term
- * @param {string} searchType - Type of search (items, changes, quality)
+ * @param {string} searchType - Type of search (items, changes, quality, requests)
  * @return {Array} Search results
  */
 function searchArena(searchTerm, searchType) {
@@ -384,6 +406,11 @@ function searchArena(searchTerm, searchType) {
                          '• The quality API endpoint structure is different\n\n' +
                          'Please try searching for "Items" or "Changes" instead.');
         }
+
+      case 'requests':
+        Logger.log('Searching requests (ECRs) for: ' + searchTerm);
+        var requests = client.getRequests();
+        return filterBySearchTerm(requests, searchTerm);
 
       default:
         return client.searchItems(searchTerm);

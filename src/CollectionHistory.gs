@@ -170,6 +170,8 @@ function generateCollectionName(items) {
 
     if (number.indexOf('ECO') === 0) {
       types['ECOs'] = (types['ECOs'] || 0) + 1;
+    } else if (number.indexOf('ECR') === 0) {
+      types['ECRs'] = (types['ECRs'] || 0) + 1;
     } else if (number.indexOf('NCMR') === 0 || number.indexOf('NCR') === 0) {
       types['Quality'] = (types['Quality'] || 0) + 1;
     } else {

@@ -11,7 +11,7 @@ The Schema Configuration feature allows you to customize which Arena PLM fields 
 - **Reduce noise**: Only include relevant fields, reducing Gemini token usage and cost
 - **Improve relevance**: Focus AI on the data that matters most for your presentations
 - **Custom guidance**: Tell Gemini exactly how to interpret and present your Arena data
-- **Object-specific**: Different configurations for Items, Changes (ECOs), and Quality Records
+- **Object-specific**: Different configurations for Items, Changes (ECOs), Requests (ECRs), and Quality Records
 
 ## How to Access
 
@@ -95,6 +95,16 @@ Click **"🔄 Refresh Fields from Arena"** to:
 - Impact: impactedItems, reason
 - Custom fields: Change-specific workspace fields
 
+**Requests (ECRs) Typically Include:**
+- Identification: number, title, description
+- Status: status, priority
+- Classification: category
+- Ownership: creator, submitter
+- Dates: submittedDateTime, targetDate, implementationDate
+- Justification: reason, justification, businessCase
+- Impact: affectedItems
+- Custom fields: Request-specific workspace fields
+
 **Quality Records Typically Include:**
 - Identification: number, title, description
 - Status: status, severity, disposition
@@ -106,7 +116,7 @@ Click **"🔄 Refresh Fields from Arena"** to:
 
 ## Configuration Options
 
-### For Each Object Type (Items, Changes, Quality):
+### For Each Object Type (Items, Changes, Requests, Quality):
 
 #### 1. Field Selection
 - **Select All / Deselect All buttons**: Quick selection controls
@@ -116,6 +126,7 @@ Click **"🔄 Refresh Fields from Arena"** to:
 **Example Fields:**
 - **Items**: number, name, description, category, lifecyclePhase, owner, cost, etc.
 - **Changes**: number, title, status, severity, targetImplementationDate, impactedItems, etc.
+- **Requests**: number, title, status, priority, justification, targetDate, affectedItems, etc.
 - **Quality**: number, description, rootCause, containmentAction, correctiveAction, etc.
 
 #### 2. Custom Instructions
@@ -134,6 +145,13 @@ If multiple items, present in a table grouped by lifecycle stage and ordered by 
 Pay special attention to created date, target due date, status, and severity.
 Focus on what changed, why it changed, and the business impact.
 Highlight any items affected by the change.
+```
+
+**For Requests (ECRs):**
+```
+Pay attention to status, priority, justification, and target date.
+Focus on the problem or opportunity being addressed and business justification.
+Emphasize expected outcomes and affected items.
 ```
 
 **For Quality Records:**
@@ -163,6 +181,7 @@ REQUIREMENTS:
 ### 3. Object Type Detection
 The system automatically detects object types:
 - **ECO-*** or **ECO*** → Changes
+- **ECR-*** or **ECR*** → Requests
 - **CAR-***, **NCMR-***, **NCR-*** → Quality Records
 - **Everything else** → Items
 
@@ -219,6 +238,11 @@ Good instructions are:
 **Changes:**
 - Fields: number, title, severity, impactedItems, targetImplementationDate, reason
 - Instructions: "Focus on business impact and timeline. List all affected items with their part numbers."
+
+### Engineering Change Request Review
+**Requests:**
+- Fields: number, title, priority, status, justification, targetDate, affectedItems
+- Instructions: "Emphasize business justification and expected benefits. Include priority level and target implementation date."
 
 ## Troubleshooting
 

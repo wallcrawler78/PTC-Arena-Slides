@@ -24,6 +24,11 @@ Arena Slides automatically detects and includes image attachments from Arena ite
 - **Reason**: ECOs typically reference item images, not contain their own
 - **Workaround**: Include related items in collection
 
+### Requests (ECRs) ❌
+- **Images Included**: NO
+- **Reason**: ECRs typically reference item images or describe changes to items
+- **Workaround**: Include affected items in collection
+
 ### Quality Records ❌
 - **Images Included**: NO
 - **Reason**: Quality records reference items with images
@@ -291,13 +296,13 @@ Planned features:
 - Fixed image size and position
 - No image editing capabilities
 - No preview before generation
-- Images only for Items (not ECOs or Quality)
+- Images only for Items (not ECOs, ECRs, or Quality)
 
 ### Workarounds
 - **Multiple Images**: Create multiple slides for same item
 - **Image Position**: Manually reposition after generation
 - **Image Size**: Manually resize after generation
-- **ECO Images**: Include related items in collection
+- **ECO/ECR Images**: Include related items in collection
 
 ---
 

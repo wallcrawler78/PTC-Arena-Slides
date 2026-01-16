@@ -152,13 +152,15 @@ function formatFieldLabel(field) {
 /**
  * Detects object type from item details
  * @param {Object} itemDetails - Item details
- * @return {string} Object type (item, change, quality)
+ * @return {string} Object type (item, change, quality, request)
  */
 function detectObjectType(itemDetails) {
   var number = itemDetails.number || itemDetails.Number || '';
 
   if (number.indexOf('ECO') === 0) {
     return 'change';
+  } else if (number.indexOf('ECR') === 0) {
+    return 'request';
   } else if (number.indexOf('CAR') === 0 || number.indexOf('NCMR') === 0 || number.indexOf('NCR') === 0) {
     return 'quality';
   }
@@ -218,6 +220,8 @@ SLIDE POSITION: This is slide ${itemIndex} of ${totalItems} in the presentation.
     objectTypeInstructions = '- This is a QUALITY RECORD (NCMR/CAPA): Emphasize problem description, root cause, containment actions, corrective actions, and preventive measures\n';
   } else if (objectType === 'change') {
     objectTypeInstructions = '- This is a CHANGE (ECO): Emphasize what changed, why it changed, the impact, status, and timeline\n';
+  } else if (objectType === 'request') {
+    objectTypeInstructions = '- This is a REQUEST (ECR): Emphasize the problem or opportunity being addressed, business justification, priority, status, and expected outcome\n';
   } else {
     objectTypeInstructions = '- This is an ITEM: Emphasize purpose, specifications, current status, lifecycle phase, and key attributes\n';
   }
