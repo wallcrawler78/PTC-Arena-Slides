@@ -8,6 +8,9 @@
 var ARENA_EMAIL_KEY = 'arena_email';
 var ARENA_SESSION_ID_KEY = 'arena_session_id';
 var ARENA_WORKSPACE_ID_KEY = 'arena_workspace_id';
+var ARENA_SESSION_TIMESTAMP_KEY = 'arena_session_timestamp';
+var ARENA_SESSION_CACHE_KEY = 'arena_session_valid_cache';
+var ARENA_SESSION_CACHE_TIMESTAMP_KEY = 'arena_session_cache_timestamp';
 
 // Gemini API Settings
 var GEMINI_API_KEY = 'gemini_api_key';
@@ -24,12 +27,19 @@ var AI_DETAIL_LEVEL_KEY = 'ai_detail_level';
  */
 function saveArenaCredentials(email, sessionId, workspaceId) {
   var userProps = PropertiesService.getUserProperties();
+  var timestamp = new Date().getTime();
+
   userProps.setProperties({
     'arena_email': email,
     'arena_session_id': sessionId,
-    'arena_workspace_id': workspaceId
+    'arena_workspace_id': workspaceId,
+    'arena_session_timestamp': timestamp.toString()
   });
-  Logger.log('Arena credentials saved for: ' + email);
+
+  // Cache the valid state
+  cacheSessionValidState(true);
+
+  Logger.log('Arena credentials saved for: ' + email + ' at ' + new Date(timestamp).toISOString());
 }
 
 /**
@@ -64,34 +74,108 @@ function clearArenaCredentials() {
   userProps.deleteProperty(ARENA_EMAIL_KEY);
   userProps.deleteProperty(ARENA_SESSION_ID_KEY);
   userProps.deleteProperty(ARENA_WORKSPACE_ID_KEY);
+  userProps.deleteProperty(ARENA_SESSION_TIMESTAMP_KEY);
+  userProps.deleteProperty(ARENA_SESSION_CACHE_KEY);
+  userProps.deleteProperty(ARENA_SESSION_CACHE_TIMESTAMP_KEY);
 
-  SlidesApp.getUi().alert('Logged out successfully from Arena');
+  Logger.log('Cleared all Arena credentials and session cache');
 }
 
 /**
  * Clears just the session ID (for re-login)
  */
 function clearArenaSession() {
-  PropertiesService.getUserProperties().deleteProperty(ARENA_SESSION_ID_KEY);
+  var userProps = PropertiesService.getUserProperties();
+  userProps.deleteProperty(ARENA_SESSION_ID_KEY);
+  userProps.deleteProperty(ARENA_SESSION_TIMESTAMP_KEY);
+  userProps.deleteProperty(ARENA_SESSION_CACHE_KEY);
+  userProps.deleteProperty(ARENA_SESSION_CACHE_TIMESTAMP_KEY);
 }
 
 /**
- * Checks if Arena session is valid
+ * Checks if Arena session is valid (makes API call)
+ * Use isArenaSessionValidCached() for menu building to avoid constant API calls
  * @return {boolean} True if session is valid
  */
 function isArenaSessionValid() {
   var sessionId = getArenaSessionId();
-  if (!sessionId) return false;
+  if (!sessionId) {
+    cacheSessionValidState(false);
+    return false;
+  }
 
   try {
     // Make a lightweight API call to test session
     var client = new ArenaAPIClient();
     client.makeRequest('/items?limit=1', { method: 'GET' });
+
+    // Cache the successful validation
+    cacheSessionValidState(true);
     return true;
   } catch (e) {
     Logger.log('Session validation failed: ' + e.message);
+
+    // Cache the failed validation
+    cacheSessionValidState(false);
     return false;
   }
+}
+
+/**
+ * Checks if Arena session is valid using cached result (5 minute cache)
+ * Use this for menu building and non-critical checks to avoid constant API calls
+ * @return {boolean} True if session is likely valid
+ */
+function isArenaSessionValidCached() {
+  var sessionId = getArenaSessionId();
+  if (!sessionId) return false;
+
+  var userProps = PropertiesService.getUserProperties();
+  var cachedValue = userProps.getProperty(ARENA_SESSION_CACHE_KEY);
+  var cacheTimestamp = userProps.getProperty(ARENA_SESSION_CACHE_TIMESTAMP_KEY);
+
+  // Check if cache exists and is less than 5 minutes old
+  if (cachedValue && cacheTimestamp) {
+    var now = new Date().getTime();
+    var cacheAge = now - parseInt(cacheTimestamp);
+    var CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+    if (cacheAge < CACHE_DURATION) {
+      Logger.log('Using cached session validation: ' + cachedValue + ' (age: ' + Math.floor(cacheAge/1000) + 's)');
+      return cachedValue === 'true';
+    }
+  }
+
+  // Cache expired or doesn't exist, do full validation
+  Logger.log('Session cache expired or missing, performing full validation');
+  return isArenaSessionValid();
+}
+
+/**
+ * Caches the session validation state
+ * @param {boolean} isValid - Whether session is valid
+ */
+function cacheSessionValidState(isValid) {
+  var userProps = PropertiesService.getUserProperties();
+  var timestamp = new Date().getTime();
+
+  userProps.setProperties({
+    'arena_session_valid_cache': isValid.toString(),
+    'arena_session_cache_timestamp': timestamp.toString()
+  });
+}
+
+/**
+ * Gets session age in minutes
+ * @return {number} Session age in minutes, or -1 if no session
+ */
+function getSessionAgeMinutes() {
+  var timestamp = PropertiesService.getUserProperties().getProperty(ARENA_SESSION_TIMESTAMP_KEY);
+  if (!timestamp) return -1;
+
+  var now = new Date().getTime();
+  var age = now - parseInt(timestamp);
+  return Math.floor(age / (60 * 1000));
 }
 
 /**

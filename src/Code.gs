@@ -132,22 +132,46 @@ function authorizeSlidesFromPresentation() {
 
 /**
  * Creates custom menu when presentation opens
+ * Menu is dynamic based on login state
  */
 function onOpen() {
   var ui = SlidesApp.getUi();
 
-  ui.createMenu('Arena Slides')
+  // Check login state (cached for 5 minutes to avoid constant API calls)
+  var isLoggedIn = isArenaSessionValidCached();
+
+  var menu = ui.createMenu('Arena Slides')
     .addItem('Search Arena Items', 'showSearchDialog')
     .addItem('Manage Collections', 'showCollectionManager')
     .addItem('Refresh Slides', 'refreshSlides')
     .addSeparator()
-    .addItem('Settings', 'showSettingsDialog')
-    .addItem('Login to Arena', 'showLoginDialog')
-    .addItem('Logout', 'clearArenaCredentials')
-    .addSeparator()
+    .addItem('Settings', 'showSettingsDialog');
+
+  // Dynamic login/logout menu item
+  if (isLoggedIn) {
+    menu.addItem('Logout from Arena', 'logoutFromArena');
+  } else {
+    menu.addItem('Login to Arena', 'showLoginDialog');
+  }
+
+  menu.addSeparator()
     .addItem('Help', 'showHelpDialog')
     .addItem('About', 'showAboutDialog')
     .addToUi();
+}
+
+/**
+ * Logs out from Arena and refreshes the menu
+ */
+function logoutFromArena() {
+  clearArenaCredentials();
+
+  // Show confirmation
+  SlidesApp.getUi().alert(
+    'Logged Out',
+    'You have been logged out from Arena.\n\nPlease reload this presentation to see the updated menu.',
+    SlidesApp.getUi().ButtonSet.OK
+  );
 }
 
 /**
