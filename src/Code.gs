@@ -314,13 +314,122 @@ function getLoadedCollection() {
 }
 
 /**
- * Generates slides with user's presentation intent
- * Called from PresentationPromptDialog
- * @param {Array} selectedItems - Array of Arena item objects
+ * Detects object type from item number prefix
+ * @param {string} itemNumber - Item number
+ * @return {string} Object type (item, change, request, quality)
+ */
+function detectObjectTypeFromNumber(itemNumber) {
+  if (itemNumber.indexOf('ECO-') === 0 || itemNumber.indexOf('ECO') === 0) {
+    return 'change';
+  } else if (itemNumber.indexOf('ECR-') === 0 || itemNumber.indexOf('ECR') === 0) {
+    return 'request';
+  } else if (itemNumber.indexOf('CAR-') === 0 || itemNumber.indexOf('NCMR-') === 0 || itemNumber.indexOf('NCR-') === 0) {
+    return 'quality';
+  }
+  return 'item';
+}
+
+/**
+ * Creates a slide from holistic synthesis data
+ * @param {Presentation} presentation - Google Slides presentation
+ * @param {Object} slideData - Slide data with title, mainContent, detailedNotes
+ * @param {Array} allItemsData - All items in collection for metadata
+ * @param {Array} images - Array of images from collection
+ */
+function createHolisticSlide(presentation, slideData, allItemsData, images) {
+  // Get selected template
+  var templatePref = PropertiesService.getUserProperties().getProperty(SLIDE_TEMPLATE_KEY) || 'title-body';
+
+  var slide;
+  if (templatePref === 'blank') {
+    slide = presentation.appendSlide(SlidesApp.PredefinedLayout.BLANK);
+  } else {
+    slide = presentation.appendSlide(SlidesApp.PredefinedLayout.TITLE_AND_BODY);
+  }
+
+  var shapes = slide.getShapes();
+
+  // Set title
+  var titleShape = shapes[0];
+  titleShape.getText().setText(slideData.title || 'Collection Overview');
+
+  // Set body content
+  if (shapes.length > 1) {
+    var bodyShape = shapes[1];
+    bodyShape.getText().setText(slideData.mainContent || '');
+  }
+
+  // Add images if available (first image only, positioned on right side)
+  if (images && images.length > 0) {
+    try {
+      var firstImage = images[0];
+      // Find the item that has this image
+      var itemWithImage = null;
+      for (var i = 0; i < allItemsData.length; i++) {
+        if (allItemsData[i].images && allItemsData[i].images.length > 0) {
+          itemWithImage = allItemsData[i];
+          break;
+        }
+      }
+
+      if (itemWithImage) {
+        var imageUrl = getImageUrl(itemWithImage.guid, firstImage.guid);
+        if (imageUrl) {
+          var imageBlob = UrlFetchApp.fetch(imageUrl).getBlob();
+          var insertedImage = slide.insertImage(imageBlob);
+
+          // Position on right side
+          insertedImage.setLeft(500);
+          insertedImage.setTop(100);
+          insertedImage.setWidth(220);
+          insertedImage.setHeight(220);
+        }
+      }
+    } catch (imageError) {
+      Logger.log('Could not insert image: ' + imageError.message);
+    }
+  }
+
+  // Add metadata to speaker notes
+  var metadata = buildCollectionMetadata(allItemsData);
+  var notes = slideData.detailedNotes || '';
+  if (notes) {
+    notes += '\n\n';
+  }
+  notes += metadata;
+
+  slide.getNotesPage().getSpeakerNotesShape().getText().setText(notes);
+
+  Logger.log('Created holistic slide: ' + slideData.title);
+}
+
+/**
+ * Builds metadata for collection slide
+ * @param {Array} allItemsData - All items in collection
+ * @return {string} Metadata string
+ */
+function buildCollectionMetadata(allItemsData) {
+  var itemNumbers = allItemsData.map(function(itemData) {
+    return itemData.number;
+  }).join(', ');
+
+  var metadata = '[Arena Slides Collection Metadata]\n';
+  metadata += 'Type: Collection\n';
+  metadata += 'Items: ' + itemNumbers + '\n';
+  metadata += 'Count: ' + allItemsData.length + '\n';
+  metadata += 'Generated: ' + new Date().toISOString() + '\n';
+
+  return metadata;
+}
+
+/**
+ * Generates slides from selected Arena items with holistic collection analysis
+ * AI reviews entire collection to identify relationships and create cohesive narrative
+ * @param {Array} selectedItems - Array of Arena items from search
  * @param {string} userPrompt - User's description of presentation intent
  * @return {Object} Result with success status and message
  */
-function generateSlidesWithPrompt(selectedItems, userPrompt) {
+function generateHolisticSlidesFromCollection(selectedItems, userPrompt) {
   try {
     if (!selectedItems || selectedItems.length === 0) {
       return { success: false, message: 'No items selected' };
@@ -330,28 +439,22 @@ function generateSlidesWithPrompt(selectedItems, userPrompt) {
       return { success: false, message: 'Please provide presentation intent' };
     }
 
-    Logger.log('Generating slides with user prompt: ' + userPrompt);
+    Logger.log('Generating holistic slides from collection with user prompt: ' + userPrompt);
     Logger.log('Number of items: ' + selectedItems.length);
 
     var presentation = SlidesApp.getActivePresentation();
-    var slidesCreated = 0;
+
+    // STEP 1: Fetch all item details first
+    Logger.log('Fetching all item details...');
+    var allItemsData = [];
 
     for (var i = 0; i < selectedItems.length; i++) {
       var item = selectedItems[i];
-
-      // Get detailed item information from Arena
       var itemGuid = item.guid || item.Guid;
       var itemNumber = item.number || item.Number || '';
 
       // Detect object type from number prefix
-      var objectType = 'item'; // default
-      if (itemNumber.indexOf('ECO-') === 0 || itemNumber.indexOf('ECO') === 0) {
-        objectType = 'change';
-      } else if (itemNumber.indexOf('ECR-') === 0 || itemNumber.indexOf('ECR') === 0) {
-        objectType = 'request';
-      } else if (itemNumber.indexOf('CAR-') === 0 || itemNumber.indexOf('NCMR-') === 0 || itemNumber.indexOf('NCR-') === 0) {
-        objectType = 'quality';
-      }
+      var objectType = detectObjectTypeFromNumber(itemNumber);
 
       Logger.log('Fetching details for ' + itemNumber + ' (type: ' + objectType + ', GUID: ' + itemGuid + ')');
       var itemDetails = getArenaItemDetails(itemGuid, objectType);
@@ -363,27 +466,66 @@ function generateSlidesWithPrompt(selectedItems, userPrompt) {
         Logger.log('Found ' + images.length + ' image(s) for ' + itemNumber);
       }
 
-      // Generate AI summary using Gemini with user context
-      var summary = generateAISummaryWithContext(itemDetails, userPrompt, i + 1, selectedItems.length, objectType);
+      allItemsData.push({
+        itemDetails: itemDetails,
+        objectType: objectType,
+        number: itemNumber,
+        guid: itemGuid,
+        images: images,
+        originalItem: item
+      });
+    }
 
-      // Create slide with content and images
-      createSlideWithContent(presentation, item, summary, objectType, images);
+    Logger.log('All item details fetched. Generating holistic synthesis...');
+
+    // STEP 2: Generate holistic collection synthesis using AI
+    var synthesis = generateCollectionSynthesis(allItemsData, userPrompt);
+
+    Logger.log('Synthesis complete. Creating ' + synthesis.slides.length + ' slide(s)...');
+
+    // STEP 3: Create slides based on AI's holistic synthesis
+    var slidesCreated = 0;
+    for (var s = 0; s < synthesis.slides.length; s++) {
+      var slideData = synthesis.slides[s];
+
+      // Collect all relevant images for this collection
+      var allImages = [];
+      allItemsData.forEach(function(itemData) {
+        if (itemData.images && itemData.images.length > 0) {
+          allImages = allImages.concat(itemData.images);
+        }
+      });
+
+      // Create slide with synthesized content
+      createHolisticSlide(presentation, slideData, allItemsData, allImages);
       slidesCreated++;
     }
 
     return {
       success: true,
-      message: 'Successfully created ' + slidesCreated + ' slide(s)'
+      message: 'Successfully created ' + slidesCreated + ' slide(s) with holistic analysis'
     };
 
   } catch (error) {
-    Logger.log('Error generating slides: ' + error.message);
+    Logger.log('Error generating holistic slides: ' + error.message);
     Logger.log('Stack: ' + error.stack);
     return {
       success: false,
       message: 'Error: ' + error.message
     };
   }
+}
+
+/**
+ * Generates slides with user's presentation intent
+ * Called from PresentationPromptDialog
+ * @param {Array} selectedItems - Array of Arena item objects
+ * @param {string} userPrompt - User's description of presentation intent
+ * @return {Object} Result with success status and message
+ */
+function generateSlidesWithPrompt(selectedItems, userPrompt) {
+  // Use holistic collection analysis
+  return generateHolisticSlidesFromCollection(selectedItems, userPrompt);
 }
 
 /**

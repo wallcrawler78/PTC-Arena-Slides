@@ -362,3 +362,289 @@ function generateBasicSummary(itemDetails) {
     detailedNotes: detailedNotes
   };
 }
+
+/**
+ * Generates holistic collection synthesis from multiple Arena items
+ * Analyzes all items together to identify relationships and create cohesive narrative
+ * @param {Array} allItemsData - Array of {itemDetails, objectType, number, images} objects
+ * @param {string} userPrompt - User's presentation intent
+ * @return {Object} Collection synthesis with slides array
+ */
+function generateCollectionSynthesis(allItemsData, userPrompt) {
+  try {
+    var apiKey = getGeminiApiKey();
+
+    if (!apiKey) {
+      Logger.log('No Gemini API key configured, using basic collection summary');
+      return generateBasicCollectionSummary(allItemsData);
+    }
+
+    // Get schema configuration
+    var schema = getSchemaSettings();
+
+    // Get AI detail level preference
+    var detailLevel = PropertiesService.getUserProperties().getProperty(AI_DETAIL_LEVEL_KEY) || 'medium';
+
+    // Build comprehensive collection context
+    var collectionContext = buildCollectionContext(allItemsData, schema);
+
+    // Generate collection synthesis prompt
+    var prompt = generateCollectionSynthesisPrompt(collectionContext, userPrompt, detailLevel, allItemsData.length);
+
+    Logger.log('Sending collection synthesis request to Gemini...');
+
+    // Call Gemini API
+    var synthesis = callGeminiAPI(prompt, apiKey);
+
+    // Parse synthesis response
+    return parseCollectionSynthesisResponse(synthesis, allItemsData);
+
+  } catch (error) {
+    Logger.log('Collection synthesis error: ' + error.message);
+    Logger.log('Falling back to basic collection summary');
+    return generateBasicCollectionSummary(allItemsData);
+  }
+}
+
+/**
+ * Builds comprehensive collection context for AI analysis
+ * @param {Array} allItemsData - Array of item data objects
+ * @param {Object} schema - Schema configuration
+ * @return {string} Formatted collection context
+ */
+function buildCollectionContext(allItemsData, schema) {
+  var context = [];
+
+  context.push('COLLECTION OVERVIEW:');
+  context.push('Total Items: ' + allItemsData.length);
+
+  // Categorize items by type
+  var itemsByType = {
+    items: [],
+    changes: [],
+    requests: [],
+    quality: []
+  };
+
+  allItemsData.forEach(function(itemData) {
+    var typeKey = itemData.objectType + 's';
+    if (!itemsByType[typeKey]) {
+      typeKey = 'items';
+    }
+    itemsByType[typeKey].push(itemData);
+  });
+
+  // Summary by type
+  var typeSummary = [];
+  if (itemsByType.items.length > 0) typeSummary.push(itemsByType.items.length + ' Items');
+  if (itemsByType.changes.length > 0) typeSummary.push(itemsByType.changes.length + ' Changes (ECOs)');
+  if (itemsByType.requests.length > 0) typeSummary.push(itemsByType.requests.length + ' Requests (ECRs)');
+  if (itemsByType.quality.length > 0) typeSummary.push(itemsByType.quality.length + ' Quality Records');
+
+  context.push('Breakdown: ' + typeSummary.join(', '));
+  context.push('');
+
+  // Add detailed information for each item
+  context.push('DETAILED ITEM INFORMATION:');
+  context.push('');
+
+  allItemsData.forEach(function(itemData, index) {
+    context.push('--- ITEM ' + (index + 1) + ' ---');
+    context.push('Number: ' + itemData.number);
+    context.push('Type: ' + itemData.objectType.toUpperCase());
+
+    // Get formatted content using schema-filtered fields
+    var itemContent = prepareItemContentForAI(itemData.itemDetails, itemData.objectType, schema);
+    context.push(itemContent);
+
+    // Add image info if available
+    if (itemData.images && itemData.images.length > 0) {
+      context.push('Images: ' + itemData.images.length + ' image(s) available');
+    }
+
+    context.push('');
+  });
+
+  return context.join('\n');
+}
+
+/**
+ * Generates collection synthesis prompt
+ * @param {string} collectionContext - Full collection context
+ * @param {string} userPrompt - User's presentation intent
+ * @param {string} detailLevel - Detail level (brief, medium, detailed)
+ * @param {number} totalItems - Total number of items
+ * @return {string} Collection synthesis prompt
+ */
+function generateCollectionSynthesisPrompt(collectionContext, userPrompt, detailLevel, totalItems) {
+  var prompt = `You are an AI assistant creating a cohesive presentation from a collection of Arena PLM items.
+
+CRITICAL INSTRUCTION: You must analyze this collection HOLISTICALLY. Do not treat each item independently.
+Instead, identify relationships, common themes, workflows, and narratives that connect these items together.
+
+ARENA PLM CONTEXT:
+- Arena is a Product Lifecycle Management system for managing product data, changes, and quality
+- Items: Parts, assemblies, documents (identified by item numbers like "900-00001")
+- Changes (ECOs): Engineering Change Orders that modify items (identified by "ECO-" prefix)
+- Requests (ECRs): Change requests proposing improvements (identified by "ECR-" prefix)
+- Quality Records: NCMRs, CAPAs, CARs documenting nonconformances and corrective actions
+
+COMMON PATTERNS TO IDENTIFY:
+1. CHANGE WORKFLOWS: ECRs → ECOs → affected Items (trace the change journey)
+2. QUALITY WORKFLOWS: Quality issue → ECO correction → updated Items
+3. PRODUCT FAMILIES: Related items (assemblies and components)
+4. LIFECYCLE STAGES: Items at different phases (design, production, obsolete)
+5. CROSS-FUNCTIONAL IMPACT: How changes affect multiple items or categories
+
+USER'S PRESENTATION GOAL:
+${userPrompt}
+
+${collectionContext}
+
+YOUR TASK:
+Analyze this collection and create a holistic presentation synthesis that:
+
+1. IDENTIFIES RELATIONSHIPS:
+   - Which ECOs affect which Items?
+   - Which Quality records led to which changes?
+   - Which items are related (assembly/component, product family)?
+   - What is the timeline or sequence of events?
+
+2. CREATES NARRATIVE:
+   - What is the overall story this collection tells?
+   - What common themes emerge?
+   - What is the business/technical context?
+
+3. STRUCTURES PRESENTATION:
+   - How should this be presented coherently?
+   - Should it be one overview slide or multiple thematic slides?
+   - What grouping makes the most sense?
+
+DETAIL LEVEL: ${{ brief: 'Concise executive summary', medium: 'Balanced technical overview', detailed: 'Comprehensive analysis' }[detailLevel]}
+
+FORMAT YOUR RESPONSE AS:
+
+SYNTHESIS:
+[Provide 2-3 paragraphs describing the holistic view of this collection, the relationships you identified, and the narrative]
+
+PRESENTATION STRUCTURE:
+[Describe how you recommend structuring the slides - e.g., "Single overview slide", "Three slides grouped by theme", etc.]
+
+SLIDES:
+[For each slide you recommend, provide:]
+
+SLIDE 1: [Title]
+MAIN CONTENT:
+[Bullet points for this slide]
+
+DETAILED NOTES:
+[Speaker notes for this slide]
+
+SLIDE 2: [Title]
+...continue for each recommended slide...
+
+Remember: Focus on the RELATIONSHIPS and HOLISTIC VIEW, not individual item summaries.`;
+
+  return prompt;
+}
+
+/**
+ * Parses collection synthesis response from AI
+ * @param {string} synthesis - Raw AI synthesis response
+ * @param {Array} allItemsData - Original item data for reference
+ * @return {Object} Parsed synthesis with slides array
+ */
+function parseCollectionSynthesisResponse(synthesis, allItemsData) {
+  var result = {
+    synthesis: '',
+    presentationStructure: '',
+    slides: []
+  };
+
+  // Extract synthesis section
+  var synthesisMatch = synthesis.match(/SYNTHESIS:\s*([\s\S]*?)(?=PRESENTATION STRUCTURE:|SLIDES:|$)/i);
+  if (synthesisMatch) {
+    result.synthesis = synthesisMatch[1].trim();
+  }
+
+  // Extract presentation structure
+  var structureMatch = synthesis.match(/PRESENTATION STRUCTURE:\s*([\s\S]*?)(?=SLIDES:|$)/i);
+  if (structureMatch) {
+    result.presentationStructure = structureMatch[1].trim();
+  }
+
+  // Extract slides
+  var slidesSection = synthesis.match(/SLIDES:\s*([\s\S]*)/i);
+  if (slidesSection) {
+    var slidesText = slidesSection[1];
+
+    // Split by SLIDE N: pattern
+    var slideMatches = slidesText.split(/SLIDE \d+:/i);
+
+    for (var i = 1; i < slideMatches.length; i++) {
+      var slideText = slideMatches[i];
+
+      // Extract title (first line)
+      var lines = slideText.trim().split('\n');
+      var title = lines[0].trim();
+
+      // Extract main content
+      var mainMatch = slideText.match(/MAIN CONTENT:\s*([\s\S]*?)(?=DETAILED NOTES:|$)/i);
+      var mainContent = mainMatch ? mainMatch[1].trim() : '';
+
+      // Extract detailed notes
+      var notesMatch = slideText.match(/DETAILED NOTES:\s*([\s\S]*?)(?=SLIDE \d+:|$)/i);
+      var detailedNotes = notesMatch ? notesMatch[1].trim() : '';
+
+      result.slides.push({
+        title: title,
+        mainContent: mainContent,
+        detailedNotes: detailedNotes
+      });
+    }
+  }
+
+  // Fallback: if no slides found, create one overview slide
+  if (result.slides.length === 0) {
+    result.slides.push({
+      title: 'Collection Overview',
+      mainContent: result.synthesis || synthesis,
+      detailedNotes: result.presentationStructure || ''
+    });
+  }
+
+  return result;
+}
+
+/**
+ * Generates basic collection summary without AI (fallback)
+ * @param {Array} allItemsData - Array of item data objects
+ * @return {Object} Basic collection summary
+ */
+function generateBasicCollectionSummary(allItemsData) {
+  var mainContent = 'Collection Summary:\n';
+  mainContent += '• Total Items: ' + allItemsData.length + '\n';
+
+  var itemNumbers = allItemsData.map(function(itemData) {
+    return itemData.number;
+  }).join(', ');
+
+  mainContent += '• Items: ' + itemNumbers;
+
+  var detailedNotes = 'Collection includes:\n';
+  allItemsData.forEach(function(itemData) {
+    var name = itemData.itemDetails.title || itemData.itemDetails.Title ||
+               itemData.itemDetails.name || itemData.itemDetails.Name || 'Untitled';
+    detailedNotes += itemData.number + ': ' + name + '\n';
+  });
+
+  return {
+    synthesis: 'Basic collection of ' + allItemsData.length + ' Arena items',
+    presentationStructure: 'Single overview slide',
+    slides: [{
+      title: 'Arena Collection',
+      mainContent: mainContent,
+      detailedNotes: detailedNotes
+    }]
+  };
+}
