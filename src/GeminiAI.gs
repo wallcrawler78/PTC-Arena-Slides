@@ -4,8 +4,9 @@
  * Handles AI-powered content summarization using Google's Gemini API
  */
 
-// Use v1beta API with Gemini 2.0 Flash Experimental (current as of Jan 2026)
-var GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
+// Use v1beta API with Gemini 1.5 Flash (stable, better free tier quotas)
+// Free tier: 15 RPM (requests per minute), 1M TPM (tokens per minute), 1500 RPD (requests per day)
+var GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-001:generateContent';
 
 /**
  * Generates AI summary with user context and Arena PLM knowledge
